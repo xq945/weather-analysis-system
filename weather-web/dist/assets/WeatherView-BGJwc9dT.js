@@ -1,0 +1,1 @@
+import{_ as c,o as r,c as _,b as t,w as o,a as l,e as a}from"./index-BvCqJ8Tc.js";const d={},p={class:"weather-page"};function i(m,e){const n=a("el-empty"),s=a("el-card");return r(),_("div",p,[t(s,null,{header:o(()=>[...e[0]||(e[0]=[l("span",null,"天气数据",-1)])]),default:o(()=>[t(n,{description:"该功能正在开发中，请先完成和风天气 API 对接"})]),_:1})])}const u=c(d,[["render",i]]);export{u as default};

@@ -1,0 +1,17 @@
+com\weather\dto\LoginRequest.class
+com\weather\controller\CityController.class
+com\weather\dto\Result.class
+com\weather\dto\RegisterRequest.class
+com\weather\config\GlobalExceptionHandler.class
+com\weather\entity\User.class
+com\weather\config\WebConfig.class
+com\weather\config\JwtInterceptor.class
+com\weather\entity\FollowedCity.class
+com\weather\entity\WeatherData.class
+com\weather\service\AuthService.class
+com\weather\controller\AuthController.class
+com\weather\mapper\UserMapper.class
+com\weather\mapper\FollowedCityMapper.class
+com\weather\service\CityService.class
+com\weather\WeatherApplication.class
+com\weather\util\JwtUtil.class
