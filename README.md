@@ -62,17 +62,11 @@ weather-analysis-system/
 
 ### 数据库初始化
 
-创建数据库并导入表结构：
-
-```sql
-CREATE DATABASE IF NOT EXISTS weather_analysis DEFAULT CHARSET utf8mb4;
-```
-
-启动后端应用后 MyBatis-Plus 会自动建表（开发环境）。
+运行 `sql/weather_analysis.sql` 即可创建数据库和表结构。
 
 ### 环境变量
 
-运行前设置和风天气 API Key：
+前往 [和风天气](https://www.qweather.com/) 注册并获取 API Key，然后设置环境变量：
 
 ```bash
 # Linux / macOS
@@ -102,7 +96,7 @@ npm install
 npm run dev
 ```
 
-开发服务器启动在 `http://localhost:5173`，API 请求自动代理到后端。
+开发服务器启动在 `http://localhost:3000`，API 请求自动代理到后端。
 
 ### 修改数据库配置
 
