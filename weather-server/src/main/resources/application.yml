@@ -21,5 +21,5 @@ jwt:
   expiration: 86400000
 
 qweather:
-  api-key: 38a1208ddbba4bd3ae3c095dbbd1ac4e
+  api-key: ${QWATHER_API_KEY}
   base-url: https://mb4ewug4a2.re.qweatherapi.com
