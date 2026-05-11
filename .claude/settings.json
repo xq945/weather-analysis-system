@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(java -version)",
+      "Bash(mvn -version)",
+      "Bash(mvn compile *)",
+      "Bash(npx vite *)",
+      "Bash(where node *)",
+      "Bash(nvm list *)",
+      "Bash(nvm use *)",
+      "Bash(export NVM_HOME=\"C:/develop/nvm\")",
+      "Bash(export PATH=\"$NVM_HOME:$PATH\")",
+      "Bash(nvm current *)",
+      "Read(//c/develop/nvm/**)",
+      "Read(//c/develop/nvm/v24.14.1/**)",
+      "Bash(export PATH=\"/c/develop/nvm/v24.14.1:$PATH\")",
+      "Bash(npm -v)",
+      "Bash(mvn test *)"
+    ]
+  }
+}

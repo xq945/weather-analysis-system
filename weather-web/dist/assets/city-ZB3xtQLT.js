@@ -1,0 +1,1 @@
+import{a as t}from"./index-CqMBgydp.js";function a(){return t.get("/api/cities")}function r(i){return t.post("/api/cities",{city:i})}function n(i){return t.delete(`/api/cities/${i}`)}export{r as a,a as g,n as r};
