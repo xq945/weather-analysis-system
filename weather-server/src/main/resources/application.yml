@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/weather_analysis?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
-    password: root
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -19,3 +19,7 @@ mybatis-plus:
 jwt:
   secret: weather-analysis-system-jwt-secret-key-2026
   expiration: 86400000
+
+qweather:
+  api-key: 38a1208ddbba4bd3ae3c095dbbd1ac4e
+  base-url: https://mb4ewug4a2.re.qweatherapi.com

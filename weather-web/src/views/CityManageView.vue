@@ -59,12 +59,14 @@ async function handleAdd() {
   }
   adding.value = true
   try {
-    await addCity(city)
-    ElMessage.success('添加成功')
+    const res = await addCity(city)
+    const d = res.data.data
+    ElMessage.success(`「${d.city}」添加成功，Location ID: ${d.cityCode}`)
     cityInput.value = ''
     await loadCities()
-  } catch {
-    // handled by interceptor
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || '添加失败'
+    ElMessage.error(msg)
   } finally {
     adding.value = false
   }

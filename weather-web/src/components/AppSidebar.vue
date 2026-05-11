@@ -12,10 +12,9 @@
       <el-icon><Location /></el-icon>
       <span>城市管理</span>
     </el-menu-item>
-    <el-menu-item index="/weather" disabled>
+    <el-menu-item index="/weather">
       <el-icon><Cloudy /></el-icon>
       <span>天气数据</span>
-      <el-tag size="small" style="margin-left:8px">开发中</el-tag>
     </el-menu-item>
   </el-menu>
 </template>

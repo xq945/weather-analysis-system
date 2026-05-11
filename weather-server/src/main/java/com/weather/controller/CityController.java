@@ -20,15 +20,19 @@ public class CityController {
     }
 
     @PostMapping
-    public Result<FollowedCity> addCity(@RequestBody Map<String, String> body,
-                                         HttpServletRequest request) {
+    public Result<?> addCity(@RequestBody Map<String, String> body,
+                              HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         String city = body.get("city");
         if (city == null || city.isBlank()) {
             return Result.error(400, "城市名不能为空");
         }
-        FollowedCity result = cityService.addCity(userId, city);
-        return Result.ok(result);
+        try {
+            Map<String, Object> result = cityService.addCity(userId, city);
+            return Result.ok(result);
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
     }
 
     @GetMapping

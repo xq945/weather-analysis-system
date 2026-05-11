@@ -1,87 +1,87 @@
 <template>
   <div class="dashboard">
-    <el-card class="welcome-card">
-      <h2>欢迎使用天气数据分析系统</h2>
-      <p>本系统用于查看和分析天气数据，支持多城市管理和历史数据查询。</p>
-    </el-card>
+    <div class="header">
+      <h2>天气概览</h2>
+      <el-button type="primary" @click="handleFetch" :loading="fetching">拉取最新数据</el-button>
+    </div>
 
-    <el-row :gutter="20" style="margin-top:20px">
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-num">{{ cityCount }}</div>
-          <div class="stat-label">已关注城市</div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-num">0</div>
-          <div class="stat-label">天气记录数</div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-num">-</div>
-          <div class="stat-label">数据更新时间</div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <el-empty v-if="cities.length === 0" description="暂无关注城市，请先前往「城市管理」添加城市" />
 
-    <el-card style="margin-top:20px">
-      <template #header>
-        <span>快速上手</span>
-      </template>
-      <el-steps :active="0" align-center>
-        <el-step title="添加城市" description="在「城市管理」中添加关注城市" />
-        <el-step title="对接数据" description="配置和风天气 API 密钥，拉取天气数据" />
-        <el-step title="查看分析" description="查看天气详情图表和数据分析" />
-      </el-steps>
-      <div style="text-align:center;margin-top:20px">
-        <el-tag type="info">提示：请先在「城市管理」中添加关注城市，数据对接后此处将展示天气概览</el-tag>
-      </div>
-    </el-card>
+    <div class="card-grid" v-if="cities.length > 0">
+      <el-card v-for="c in cities" :key="c.city" class="weather-card" shadow="hover">
+        <template #header>
+          <span class="city-name">{{ c.city }}</span>
+          <span v-if="c.obsTime" class="time">{{ c.obsTime }}</span>
+        </template>
+        <div v-if="c.temp !== undefined" class="card-body">
+          <div class="temp-area">
+            <span class="temp">{{ Math.round(c.temp) }}°</span>
+            <span class="text">{{ c.weatherText }}</span>
+          </div>
+          <div class="details">
+            <div class="detail-item"><span class="label">体感</span><span class="val">{{ Math.round(c.feelsLike) }}°</span></div>
+            <div class="detail-item"><span class="label">湿度</span><span class="val">{{ Math.round(c.humidity) }}%</span></div>
+          </div>
+        </div>
+        <div v-else class="no-data">
+          暂无数据，请点击「拉取最新数据」
+        </div>
+      </el-card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getCities } from '../api/city'
+import { ElMessage } from 'element-plus'
+import { getOverview, fetchWeather } from '../api/weather'
 
-const cityCount = ref(0)
+const cities = ref<any[]>([])
+const fetching = ref(false)
 
-onMounted(async () => {
+async function loadOverview() {
   try {
-    const res = await getCities()
-    cityCount.value = res.data.data.length
-  } catch {
-    // ignore
+    const res = await getOverview()
+    cities.value = res.data.data || []
+  } catch { /* ignore */ }
+}
+
+async function handleFetch() {
+  fetching.value = true
+  try {
+    const res = await fetchWeather()
+    const d = res.data.data
+    ElMessage.success(`拉取完成：${d.nowFetched} 个城市`)
+    await loadOverview()
+  } catch (err: any) {
+    ElMessage.error(err?.response?.data?.message || '拉取失败')
+  } finally {
+    fetching.value = false
   }
-})
+}
+
+onMounted(loadOverview)
 </script>
 
 <style scoped>
-.welcome-card h2 {
-  margin: 0 0 8px;
-  color: #333;
-}
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header h2 { margin: 0; }
 
-.welcome-card p {
-  margin: 0;
-  color: #666;
-}
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
-.stat-card {
-  text-align: center;
-}
+.weather-card .city-name { font-size: 16px; font-weight: bold; }
+.weather-card .time { float: right; font-size: 12px; color: #999; }
 
-.stat-num {
-  font-size: 32px;
-  font-weight: bold;
-  color: #409EFF;
-}
+.card-body { display: flex; justify-content: space-between; align-items: center; }
 
-.stat-label {
-  margin-top: 8px;
-  color: #999;
-  font-size: 14px;
-}
+.temp-area { display: flex; flex-direction: column; align-items: flex-start; }
+.temp { font-size: 42px; font-weight: bold; color: #409EFF; line-height: 1.2; }
+.text { font-size: 16px; color: #666; margin-top: 4px; }
+
+.details { display: flex; flex-direction: column; gap: 8px; }
+.detail-item { display: flex; gap: 12px; justify-content: space-between; min-width: 60px; }
+.detail-item .label { color: #999; font-size: 13px; }
+.detail-item .val { font-weight: bold; color: #333; }
+
+.no-data { text-align: center; color: #999; padding: 20px 0; }
 </style>
