@@ -16,6 +16,10 @@
       <el-icon><Cloudy /></el-icon>
       <span>天气数据</span>
     </el-menu-item>
+    <el-menu-item index="/analysis">
+      <el-icon><DataAnalysis /></el-icon>
+      <span>数据分析</span>
+    </el-menu-item>
   </el-menu>
 </template>
 
