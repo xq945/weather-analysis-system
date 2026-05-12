@@ -65,6 +65,18 @@ weather-analysis-system/
 
 运行 `sql/weather_analysis.sql` 即可创建数据库和表结构。
 
+### 修改数据库配置
+
+编辑 `weather-server/src/main/resources/application.yml`，按实际环境修改数据库连接信息：
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/weather_analysis
+    username: root
+    password: 123456
+```
+
 ### 环境变量
 
 前往 [和风天气](https://www.qweather.com/) 注册并获取 API Key，然后设置环境变量：
@@ -98,18 +110,6 @@ npm run dev
 ```
 
 开发服务器启动在 `http://localhost:3000`，API 请求自动代理到后端。
-
-### 修改数据库配置
-
-编辑 `weather-server/src/main/resources/application.yml`，按实际环境修改数据库连接信息：
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/weather_analysis
-    username: root
-    password: 123456
-```
 
 ## API 接口
 
