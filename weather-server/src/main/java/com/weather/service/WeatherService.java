@@ -9,6 +9,7 @@ import com.weather.mapper.FollowedCityMapper;
 import com.weather.mapper.WeatherDataMapper;
 import com.weather.mapper.WeatherForecastMapper;
 import com.weather.util.QWeatherApiClient;
+import com.weather.util.WeatherTextUtil;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -48,7 +49,7 @@ public class WeatherService {
         data.setWindSpeed((float) now.path("windSpeed").asDouble());
         data.setPressure((float) now.path("pressure").asDouble());
         data.setVisibility((float) now.path("vis").asDouble());
-        data.setWeatherText(now.path("text").asText());
+        data.setWeatherText(WeatherTextUtil.toChinese(now.path("text").asText()));
         weatherDataMapper.insert(data);
         return data;
     }
@@ -73,8 +74,8 @@ public class WeatherService {
             forecast.setForecastDate(forecastDate);
             forecast.setTempMax((float) day.path("tempMax").asDouble());
             forecast.setTempMin((float) day.path("tempMin").asDouble());
-            forecast.setWeatherTextDay(day.path("textDay").asText());
-            forecast.setWeatherTextNight(day.path("textNight").asText());
+            forecast.setWeatherTextDay(WeatherTextUtil.toChinese(day.path("textDay").asText()));
+            forecast.setWeatherTextNight(WeatherTextUtil.toChinese(day.path("textNight").asText()));
             forecast.setHumidity((float) day.path("humidity").asDouble());
             forecast.setWindSpeed((float) day.path("windSpeedDay").asDouble());
             forecastMapper.insert(forecast);

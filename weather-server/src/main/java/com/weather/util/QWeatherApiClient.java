@@ -113,6 +113,7 @@ public class QWeatherApiClient {
     public JsonNode getWeatherNow(String cityId) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/now")
                 .queryParam("location", cityId)
+                .queryParam("lang", "zh")
                 .toUriString();
         JsonNode root = callApi(url);
         if (!"200".equals(root.path("code").asText())) {
@@ -124,6 +125,7 @@ public class QWeatherApiClient {
     public JsonNode getWeather7d(String cityId) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/7d")
                 .queryParam("location", cityId)
+                .queryParam("lang", "zh")
                 .toUriString();
         JsonNode root = callApi(url);
         if (!"200".equals(root.path("code").asText())) {
