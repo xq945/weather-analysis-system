@@ -19,11 +19,12 @@
 
 ## 功能模块
 
-- **用户认证** — 注册、登录、JWT Token 鉴权
+- **用户认证** — 注册、登录、JWT Token 鉴权，支持管理员/普通用户权限
+- **用户管理** — 管理员可查看所有用户，管理用户状态与权限
 - **仪表盘** — 关注城市天气概览、实时数据总览
 - **天气查询** — 实时天气、7 天预报、历史数据查询
 - **数据分析** — 单城市统计、多城市对比分析
-- **城市管理** — 关注城市列表，支持搜索添加
+- **城市管理** — 关注城市列表，支持搜索添加，支持切换查看全部/我的城市
 - **定时采集** — 每 30 分钟自动拉取实时天气，每日 8 点拉取预报
 
 ## 项目结构
@@ -33,21 +34,21 @@ weather-analysis-system/
 ├── weather-server/                 # 后端 Spring Boot
 │   ├── src/main/java/com/weather/
 │   │   ├── config/                 # 拦截器、定时任务、异常处理
-│   │   ├── controller/             # REST 控制器
+│   │   ├── controller/             # REST 控制器（Auth/City/Weather/User）
 │   │   ├── dto/                    # 请求/响应 DTO
-│   │   ├── entity/                 # 实体类
+│   │   ├── entity/                 # 实体类（User/FollowedCity/WeatherData）
 │   │   ├── mapper/                 # MyBatis Mapper
-│   │   ├── service/                # 业务逻辑
+│   │   ├── service/                # 业务逻辑（Auth/City/Weather/User）
 │   │   └── util/                   # JWT、和风天气 API 客户端
 │   └── src/main/resources/
 │       └── application.yml         # 应用配置
 ├── weather-web/                    # 前端 Vue 3
 │   └── src/
-│       ├── api/                    # API 请求封装
+│       ├── api/                    # API 请求封装（auth/city/weather/user）
 │       ├── components/             # 公共组件
-│       ├── router/                 # 路由配置
-│       ├── stores/                 # Pinia 状态管理
-│       └── views/                  # 页面视图
+│       ├── router/                 # 路由配置（含权限守卫）
+│       ├── stores/                 # Pinia 状态管理（auth/cities）
+│       └── views/                  # 页面视图（Dashboard/CityManage/Weather/Analysis/UserManage）
 └── .gitignore
 ```
 
@@ -124,4 +125,11 @@ spring:
 | GET | `/api/weather/history` | 历史天气 | 是 |
 | GET | `/api/weather/statistics` | 天气统计 | 是 |
 | GET | `/api/weather/compare` | 城市对比 | 是 |
-| GET/POST | `/api/cities/*` | 城市管理 | 是 |
+| GET | `/api/cities` | 我的关注城市列表 | 是 |
+| GET | `/api/cities/all` | 所有城市列表 | 是 |
+| GET | `/api/cities/admin/all` | 所有用户关注城市（管理员） | 是 |
+| POST | `/api/cities` | 添加关注城市 | 是 |
+| DELETE | `/api/cities/{id}` | 删除关注城市 | 是 |
+| GET | `/api/users` | 用户列表（管理员） | 是 |
+| PUT | `/api/users/{id}/status` | 修改用户状态（管理员） | 是 |
+| PUT | `/api/users/{id}/permission` | 修改用户权限（管理员） | 是 |
