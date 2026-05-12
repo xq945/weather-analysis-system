@@ -39,7 +39,7 @@ weather-analysis-system/
 │   │   ├── entity/                 # 实体类（User/FollowedCity/WeatherData）
 │   │   ├── mapper/                 # MyBatis Mapper
 │   │   ├── service/                # 业务逻辑（Auth/City/Weather/User）
-│   │   └── util/                   # JWT、和风天气 API 客户端
+│   │   └── util/                   # JWT、和风天气 API 客户端、天气文本翻译
 │   └── src/main/resources/
 │       └── application.yml         # 应用配置
 ├── weather-web/                    # 前端 Vue 3
@@ -49,6 +49,8 @@ weather-analysis-system/
 │       ├── router/                 # 路由配置（含权限守卫）
 │       ├── stores/                 # Pinia 状态管理（auth/cities）
 │       └── views/                  # 页面视图（Dashboard/CityManage/Weather/Analysis/UserManage）
+├── deploy/                          # 部署配置
+│   └── nginx.conf                   # Nginx 配置（宝塔面板适用）
 └── .gitignore
 ```
 
