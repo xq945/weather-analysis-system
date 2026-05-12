@@ -21,6 +21,10 @@
         <el-icon><DataAnalysis /></el-icon>
         <span>数据分析</span>
       </el-menu-item>
+      <el-menu-item v-if="authStore.permission === 2" index="/users">
+        <el-icon><Setting /></el-icon>
+        <span>用户管理</span>
+      </el-menu-item>
     </el-menu>
     <a class="source-link" href="https://www.qweather.com/" target="_blank">数据来源</a>
   </div>
@@ -29,8 +33,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const activeMenu = computed(() => route.path)
 </script>
 

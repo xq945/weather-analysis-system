@@ -35,12 +35,15 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setPassword(md5Hash(request.getPassword()));
         user.setNickname(request.getNickname() != null ? request.getNickname() : request.getUsername());
+        user.setPermission(1);
+        user.setStatus(1);
         userMapper.insert(user);
 
         String token = jwtUtil.generateToken(user.getId().longValue(), user.getUsername());
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("nickname", user.getNickname());
+        result.put("permission", user.getPermission());
         return result;
     }
 
@@ -52,11 +55,15 @@ public class AuthService {
         if (user == null || !user.getPassword().equals(md5Hash(request.getPassword()))) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new IllegalArgumentException("账号已被禁用，请联系管理员");
+        }
 
         String token = jwtUtil.generateToken(user.getId().longValue(), user.getUsername());
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("nickname", user.getNickname());
+        result.put("permission", user.getPermission());
         return result;
     }
 

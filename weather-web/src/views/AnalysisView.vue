@@ -13,17 +13,17 @@
       <template v-if="mode === 'single'">
         <span class="label">城市</span>
         <el-select v-model="city" placeholder="选择城市" style="width:180px" @change="loadSingle">
-          <el-option v-for="c in cities" :key="c.city" :label="c.city" :value="c.city" />
+          <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city" />
         </el-select>
       </template>
       <template v-else>
         <span class="label">城市A</span>
         <el-select v-model="cityA" placeholder="选择城市" style="width:180px" @change="loadCompare">
-          <el-option v-for="c in cities" :key="c.city" :label="c.city" :value="c.city" />
+          <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city" />
         </el-select>
         <span class="label">城市B</span>
         <el-select v-model="cityB" placeholder="选择城市" style="width:180px" @change="loadCompare">
-          <el-option v-for="c in cities" :key="c.city" :label="c.city" :value="c.city"
+          <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city"
             :disabled="c.city === cityA" />
         </el-select>
       </template>
@@ -50,24 +50,19 @@
         <div class="stat-item"><span class="stat-num">{{ stats.minTemp ?? '-' }}°C</span><span class="stat-label">最低温度</span></div>
         <div class="stat-item"><span class="stat-num">{{ stats.recordCount }}</span><span class="stat-label">数据条数</span></div>
       </div>
-      <div class="chart-row">
-        <div class="chart-box">
-          <div class="chart-title">温度与体感温度趋势</div>
-          <div ref="trendChart" class="chart"></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title">实况 vs 预报对比</div>
-          <div ref="vsChart" class="chart"></div>
-        </div>
+      <div class="chart-select">
+        <span class="label">图表选择</span>
+        <el-select v-model="singleChart" style="width:200px" @change="(val: string) => { singleChart = val; switchSingleChart(); }">
+          <el-option value="trend" label="温度与体感温度趋势" />
+          <el-option value="vs" label="实况 vs 预报对比" />
+          <el-option value="humidity" label="湿度变化" />
+          <el-option value="wind" label="风速变化" />
+        </el-select>
       </div>
       <div class="chart-row">
-        <div class="chart-box">
-          <div class="chart-title">湿度变化</div>
-          <div ref="humidityChart" class="chart"></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title">风速变化</div>
-          <div ref="windChart" class="chart"></div>
+        <div class="chart-box full-width">
+          <div class="chart-title">{{ singleChartTitle }}</div>
+          <div ref="singleChartDom" class="chart"></div>
         </div>
       </div>
     </template>
@@ -83,24 +78,19 @@
         </div>
         <div class="stat-item"><span class="stat-num">{{ (compare.cityA.recordCount || 0) + (compare.cityB.recordCount || 0) }}</span><span class="stat-label">总数据量</span></div>
       </div>
-      <div class="chart-row">
-        <div class="chart-box">
-          <div class="chart-title">温度对比</div>
-          <div ref="compTempChart" class="chart"></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title">温度差值趋势</div>
-          <div ref="compDiffChart" class="chart"></div>
-        </div>
+      <div class="chart-select">
+        <span class="label">图表选择</span>
+        <el-select v-model="compareChart" style="width:200px" @change="(val: string) => { compareChart = val; switchCompareChart(); }">
+          <el-option value="temp" label="温度对比" />
+          <el-option value="diff" label="温度差值趋势" />
+          <el-option value="humidity" label="湿度对比" />
+          <el-option value="wind" label="风速对比" />
+        </el-select>
       </div>
       <div class="chart-row">
-        <div class="chart-box">
-          <div class="chart-title">湿度对比</div>
-          <div ref="compHumidityChart" class="chart"></div>
-        </div>
-        <div class="chart-box">
-          <div class="chart-title">风速对比</div>
-          <div ref="compWindChart" class="chart"></div>
+        <div class="chart-box full-width">
+          <div class="chart-title">{{ compareChartTitle }}</div>
+          <div ref="compareChartDom" class="chart"></div>
         </div>
       </div>
     </template>
@@ -108,13 +98,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { getCities } from '../api/city'
+import { useCitiesStore } from '../stores/cities'
 import { getStatistics, getCompare } from '../api/weather'
 
 const mode = ref<'single' | 'compare'>('single')
-const cities = ref<any[]>([])
+const citiesStore = useCitiesStore()
 const city = ref('')
 const cityA = ref('')
 const cityB = ref('')
@@ -122,14 +112,30 @@ const days = ref(7)
 const stats = ref<any>(null)
 const compare = ref<any>(null)
 
-const trendChart = ref<HTMLDivElement>()
-const vsChart = ref<HTMLDivElement>()
-const humidityChart = ref<HTMLDivElement>()
-const windChart = ref<HTMLDivElement>()
-const compTempChart = ref<HTMLDivElement>()
-const compDiffChart = ref<HTMLDivElement>()
-const compHumidityChart = ref<HTMLDivElement>()
-const compWindChart = ref<HTMLDivElement>()
+const singleChart = ref('trend')
+const compareChart = ref('temp')
+const singleChartDom = ref<HTMLDivElement>()
+const compareChartDom = ref<HTMLDivElement>()
+
+const singleChartTitle = computed(() => {
+  const map: Record<string, string> = {
+    trend: '温度与体感温度趋势',
+    vs: '实况 vs 预报对比',
+    humidity: '湿度变化',
+    wind: '风速变化',
+  }
+  return map[singleChart.value] || ''
+})
+
+const compareChartTitle = computed(() => {
+  const map: Record<string, string> = {
+    temp: '温度对比',
+    diff: '温度差值趋势',
+    humidity: '湿度对比',
+    wind: '风速对比',
+  }
+  return map[compareChart.value] || ''
+})
 
 const diffVal = computed(() => {
   if (!compare.value) return 0
@@ -140,8 +146,9 @@ const diffVal = computed(() => {
 })
 
 onMounted(async () => {
-  const res = await getCities()
-  cities.value = res.data.data || []
+  if (citiesStore.allList.length === 0) {
+    await citiesStore.load()
+  }
 })
 
 function handleModeChange() { stats.value = null; compare.value = null }
@@ -152,7 +159,7 @@ async function loadSingle() {
   const res = await getStatistics(city.value, days.value)
   stats.value = res.data.data
   await nextTick()
-  renderSingleCharts()
+  switchSingleChart()
 }
 
 async function loadCompare() {
@@ -160,122 +167,125 @@ async function loadCompare() {
   const res = await getCompare(cityA.value, cityB.value, days.value)
   compare.value = res.data.data
   await nextTick()
-  renderCompareCharts()
+  switchCompareChart()
 }
 
-function renderSingleCharts() {
-  if (!stats.value) return
-  const data = stats.value
-  const times = (data.trend || []).map((d: any) => d.time)
-  const fmt = (v: any) => v != null ? Number(Number(v).toFixed(1)) : null
+function fmt(v: any) { return v != null ? Number(Number(v).toFixed(1)) : null }
 
-  renderChart(trendChart.value!, {
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['温度', '体感温度'], bottom: 0 },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: '°C' },
-    series: [
-      { name: '温度', type: 'line', data: (data.trend || []).map((d: any) => fmt(d.temp)), smooth: true, symbol: 'none' },
-      { name: '体感温度', type: 'line', data: (data.trend || []).map((d: any) => fmt(d.feelsLike)), smooth: true, symbol: 'none' }
-    ]
-  })
-
-  const daily = data.dailySummary || []
-  const forecast = data.forecast || []
-  renderChart(vsChart.value!, {
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['实际最高', '实际最低', '预报最高', '预报最低'], bottom: 0 },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: daily.map((d: any) => d.date), axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: '°C' },
-    series: [
-      { name: '实际最高', type: 'line', data: daily.map((d: any) => d.maxTemp), symbol: 'circle', symbolSize: 6 },
-      { name: '实际最低', type: 'line', data: daily.map((d: any) => d.minTemp), symbol: 'circle', symbolSize: 6 },
-      { name: '预报最高', type: 'line', data: forecast.slice(0, daily.length).map((f: any) => f.tempMax), lineStyle: { type: 'dashed' }, symbol: 'none' },
-      { name: '预报最低', type: 'line', data: forecast.slice(0, daily.length).map((f: any) => f.tempMin), lineStyle: { type: 'dashed' }, symbol: 'none' }
-    ]
-  })
-
-  renderChart(humidityChart.value!, {
-    tooltip: { trigger: 'axis' },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: '%' },
-    series: [{ type: 'line', data: (data.trend || []).map((d: any) => fmt(d.humidity)), smooth: true, symbol: 'none', color: '#67c23a', areaStyle: { color: 'rgba(103,194,58,0.1)' } }]
-  })
-
-  renderChart(windChart.value!, {
-    tooltip: { trigger: 'axis' },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: 'km/h' },
-    series: [{ type: 'bar', data: (data.trend || []).map((d: any) => fmt(d.windSpeed)), color: '#e6a23c' }]
-  })
-}
-
-function renderCompareCharts() {
-  if (!compare.value) return
-  const c = compare.value
-  const aTrend = c.cityA.trend || []
-  const bTrend = c.cityB.trend || []
-  const times = aTrend.map((d: any) => d.time)
-  const fmt = (v: any) => v != null ? Number(Number(v).toFixed(1)) : null
-
-  renderChart(compTempChart.value!, {
-    tooltip: { trigger: 'axis' },
-    legend: { data: [c.cityA.name, c.cityB.name], bottom: 0 },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: '°C' },
-    series: [
-      { name: c.cityA.name, type: 'line', data: aTrend.map((d: any) => fmt(d.temp)), smooth: true, symbol: 'none' },
-      { name: c.cityB.name, type: 'line', data: bTrend.map((d: any) => fmt(d.temp)), smooth: true, symbol: 'none' }
-    ]
-  })
-
-  const diff = c.diff || []
-  renderChart(compDiffChart.value!, {
-    tooltip: { trigger: 'axis' },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: diff.map((d: any) => d.time), axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: '°C' },
-    series: [{
-      type: 'line', data: diff.map((d: any) => d.tempDiff), smooth: true, symbol: 'none',
-      areaStyle: { color: 'rgba(64,158,255,0.2)' },
-      lineStyle: { color: '#409EFF' }
-    }]
-  })
-
-  renderChart(compHumidityChart.value!, {
-    tooltip: { trigger: 'axis' },
-    legend: { data: [c.cityA.name, c.cityB.name], bottom: 0 },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: '%' },
-    series: [
-      { name: c.cityA.name, type: 'line', data: aTrend.map((d: any) => fmt(d.humidity)), smooth: true, symbol: 'none' },
-      { name: c.cityB.name, type: 'line', data: bTrend.map((d: any) => fmt(d.humidity)), smooth: true, symbol: 'none' }
-    ]
-  })
-
-  renderChart(compWindChart.value!, {
-    tooltip: { trigger: 'axis' },
-    legend: { data: [c.cityA.name, c.cityB.name], bottom: 0 },
-    grid: { left: 50, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
-    yAxis: { type: 'value', name: 'km/h' },
-    series: [
-      { name: c.cityA.name, type: 'bar', data: aTrend.map((d: any) => fmt(d.windSpeed)), barGap: '10%', itemStyle: { color: '#409EFF' } },
-      { name: c.cityB.name, type: 'bar', data: bTrend.map((d: any) => fmt(d.windSpeed)), itemStyle: { color: '#e6a23c' } }
-    ]
-  })
-}
-
-function renderChart(dom: HTMLDivElement, option: any) {
+function renderChart(dom: HTMLDivElement | null, option: any) {
+  if (!dom) return
   const instance = echarts.getInstanceByDom(dom)
   if (instance) instance.dispose()
   echarts.init(dom).setOption(option)
+}
+
+function switchSingleChart() {
+  const data = stats.value
+  if (!data) return
+  const times = (data.trend || []).map((d: any) => d.time)
+  const daily = data.dailySummary || []
+  const forecast = data.forecast || []
+
+  const options: Record<string, any> = {
+    trend: {
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['温度', '体感温度'], bottom: 0 },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: '°C' },
+      series: [
+        { name: '温度', type: 'line', data: (data.trend || []).map((d: any) => fmt(d.temp)), smooth: true, symbol: 'none' },
+        { name: '体感温度', type: 'line', data: (data.trend || []).map((d: any) => fmt(d.feelsLike)), smooth: true, symbol: 'none' },
+      ],
+    },
+    vs: {
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['实际最高', '实际最低', '预报最高', '预报最低'], bottom: 0 },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: daily.map((d: any) => d.date), axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: '°C' },
+      series: [
+        { name: '实际最高', type: 'line', data: daily.map((d: any) => d.maxTemp), symbol: 'circle', symbolSize: 6 },
+        { name: '实际最低', type: 'line', data: daily.map((d: any) => d.minTemp), symbol: 'circle', symbolSize: 6 },
+        { name: '预报最高', type: 'line', data: forecast.slice(0, daily.length).map((f: any) => f.tempMax), lineStyle: { type: 'dashed' }, symbol: 'none' },
+        { name: '预报最低', type: 'line', data: forecast.slice(0, daily.length).map((f: any) => f.tempMin), lineStyle: { type: 'dashed' }, symbol: 'none' },
+      ],
+    },
+    humidity: {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: '%' },
+      series: [{ type: 'line', data: (data.trend || []).map((d: any) => fmt(d.humidity)), smooth: true, symbol: 'none', color: '#67c23a', areaStyle: { color: 'rgba(103,194,58,0.1)' } }],
+    },
+    wind: {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: 'km/h' },
+      series: [{ type: 'bar', data: (data.trend || []).map((d: any) => fmt(d.windSpeed)), color: '#e6a23c' }],
+    },
+  }
+
+  renderChart(singleChartDom.value!, options[singleChart.value])
+}
+
+function switchCompareChart() {
+  const c = compare.value
+  if (!c) return
+  const aTrend = c.cityA.trend || []
+  const bTrend = c.cityB.trend || []
+  const diff = c.diff || []
+  const times = aTrend.map((d: any) => d.time)
+
+  const options: Record<string, any> = {
+    temp: {
+      tooltip: { trigger: 'axis' },
+      legend: { data: [c.cityA.name, c.cityB.name], bottom: 0 },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: '°C' },
+      series: [
+        { name: c.cityA.name, type: 'line', data: aTrend.map((d: any) => fmt(d.temp)), smooth: true, symbol: 'none' },
+        { name: c.cityB.name, type: 'line', data: bTrend.map((d: any) => fmt(d.temp)), smooth: true, symbol: 'none' },
+      ],
+    },
+    diff: {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: diff.map((d: any) => d.time), axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: '°C' },
+      series: [{
+        type: 'line', data: diff.map((d: any) => d.tempDiff), smooth: true, symbol: 'none',
+        areaStyle: { color: 'rgba(64,158,255,0.2)' },
+        lineStyle: { color: '#409EFF' },
+      }],
+    },
+    humidity: {
+      tooltip: { trigger: 'axis' },
+      legend: { data: [c.cityA.name, c.cityB.name], bottom: 0 },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: '%' },
+      series: [
+        { name: c.cityA.name, type: 'line', data: aTrend.map((d: any) => fmt(d.humidity)), smooth: true, symbol: 'none' },
+        { name: c.cityB.name, type: 'line', data: bTrend.map((d: any) => fmt(d.humidity)), smooth: true, symbol: 'none' },
+      ],
+    },
+    wind: {
+      tooltip: { trigger: 'axis' },
+      legend: { data: [c.cityA.name, c.cityB.name], bottom: 0 },
+      grid: { left: 50, right: 20, top: 10, bottom: 30 },
+      xAxis: { type: 'category', data: times, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: 'value', name: 'km/h' },
+      series: [
+        { name: c.cityA.name, type: 'bar', data: aTrend.map((d: any) => fmt(d.windSpeed)), barGap: '10%', itemStyle: { color: '#409EFF' } },
+        { name: c.cityB.name, type: 'bar', data: bTrend.map((d: any) => fmt(d.windSpeed)), itemStyle: { color: '#e6a23c' } },
+      ],
+    },
+  }
+
+  renderChart(compareChartDom.value!, options[compareChart.value])
 }
 </script>
 
@@ -297,8 +307,12 @@ function renderChart(dom: HTMLDivElement, option: any) {
 .stat-num { display: block; font-size: 28px; font-weight: bold; color: #409EFF; }
 .stat-label { display: block; margin-top: 6px; font-size: 13px; color: #999; }
 
+.chart-select { display: flex; align-items: center; gap: 10px; }
+.chart-select .label { font-weight: bold; color: #333; }
+
 .chart-row { display: flex; gap: 16px; }
 .chart-box { flex: 1; background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.chart-box.full-width { flex: 1; }
 .chart-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 8px; }
-.chart { width: 100%; height: 260px; }
+.chart { width: 100%; height: 320px; }
 </style>

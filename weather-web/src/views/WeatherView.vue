@@ -2,7 +2,7 @@
   <div class="weather-page">
     <div class="toolbar">
       <el-select v-model="selectedCity" placeholder="选择城市" size="large" style="width:200px">
-        <el-option v-for="c in cities" :key="c.city" :label="c.city" :value="c.city" />
+        <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city" />
       </el-select>
       <el-button type="primary" size="large" @click="handleFetch" :loading="fetching">
         拉取天气数据
@@ -78,10 +78,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getCities } from '../api/city'
+import { useCitiesStore } from '../stores/cities'
 import { fetchWeather, getWeatherNow, getForecast } from '../api/weather'
 
-const cities = ref<any[]>([])
+const citiesStore = useCitiesStore()
 const selectedCity = ref('')
 const fetching = ref(false)
 const lastFetch = ref('')
@@ -90,10 +90,9 @@ const nowData = ref<any>(null)
 const forecastData = ref<any[]>([])
 
 onMounted(async () => {
-  try {
-    const res = await getCities()
-    cities.value = res.data.data
-  } catch { /* ignore */ }
+  if (citiesStore.allList.length === 0) {
+    await citiesStore.load()
+  }
 })
 
 watch(selectedCity, async (city) => {

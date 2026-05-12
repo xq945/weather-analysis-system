@@ -4,6 +4,14 @@ export function getCities() {
   return api.get('/api/cities')
 }
 
+export function getAllCities() {
+  return api.get('/api/cities/all')
+}
+
+export function getAdminAllCities() {
+  return api.get('/api/cities/admin/all')
+}
+
 export function addCity(city: string) {
   return api.post('/api/cities', { city })
 }

@@ -84,26 +84,24 @@ public class WeatherService {
     }
 
     public Map<String, Object> fetchAllForUser(Long userId) {
-        LambdaQueryWrapper<FollowedCity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FollowedCity::getUserId, userId);
-        List<FollowedCity> cities = followedCityMapper.selectList(wrapper);
+        Set<String> cities = getAllFollowedCities();
 
         int nowCount = 0;
         int forecastCount = 0;
         List<String> errors = new ArrayList<>();
 
-        for (FollowedCity city : cities) {
+        for (String city : cities) {
             try {
-                fetchNowForCity(city.getCity());
+                fetchNowForCity(city);
                 nowCount++;
             } catch (Exception e) {
-                errors.add(city.getCity() + "实时天气: " + e.getMessage());
+                errors.add(city + "实时天气: " + e.getMessage());
             }
             try {
-                List<WeatherForecast> forecasts = fetchForecastForCity(city.getCity());
+                List<WeatherForecast> forecasts = fetchForecastForCity(city);
                 forecastCount += forecasts.size();
             } catch (Exception e) {
-                errors.add(city.getCity() + "预报: " + e.getMessage());
+                errors.add(city + "预报: " + e.getMessage());
             }
         }
 
@@ -141,15 +139,13 @@ public class WeatherService {
     }
 
     public List<Map<String, Object>> getOverview(Long userId) {
-        LambdaQueryWrapper<FollowedCity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FollowedCity::getUserId, userId);
-        List<FollowedCity> cities = followedCityMapper.selectList(wrapper);
+        Set<String> cities = getAllFollowedCities();
 
         List<Map<String, Object>> result = new ArrayList<>();
-        for (FollowedCity city : cities) {
-            WeatherData latest = getLatestNow(city.getCity());
+        for (String cityName : cities) {
+            WeatherData latest = getLatestNow(cityName);
             Map<String, Object> item = new HashMap<>();
-            item.put("city", city.getCity());
+            item.put("city", cityName);
             if (latest != null) {
                 item.put("temp", latest.getTemp());
                 item.put("feelsLike", latest.getFeelsLike());

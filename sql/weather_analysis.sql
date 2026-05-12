@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS user (
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(200) NOT NULL,
     nickname VARCHAR(50),
+    permission INT DEFAULT 1 COMMENT '权限: 1=普通用户, 2=管理员',
+    status INT DEFAULT 1 COMMENT '状态: 0=禁用, 1=正常',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -16,7 +18,8 @@ CREATE TABLE IF NOT EXISTS followed_city (
     user_id INT NOT NULL,
     city VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_user_city (user_id, city)
+    UNIQUE KEY uk_user_city (user_id, city),
+    INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 天气数据表
@@ -58,7 +61,7 @@ CREATE TABLE IF NOT EXISTS city_list (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 常用城市ID数据
-INSERT IGNORE INTO city_list (city_name, city_code, province) VALUES
+/*INSERT IGNORE INTO city_list (city_name, city_code, province) VALUES
 ('北京', '101010100', '北京'),
 ('上海', '101020100', '上海'),
 ('广州', '101280101', '广东'),
@@ -95,7 +98,7 @@ INSERT IGNORE INTO city_list (city_name, city_code, province) VALUES
 ('呼和浩特', '101080101', '内蒙古'),
 ('拉萨', '101140101', '西藏'),
 ('银川', '101170101', '宁夏'),
-('西宁', '101150101', '青海');
+('西宁', '101150101', '青海');*/
 
 -- 默认管理员账号：admin / admin123
-INSERT IGNORE INTO user (username, password, nickname) VALUES ('admin', MD5('admin123'), '管理员');
+INSERT IGNORE INTO user (username, password, nickname, permission, status) VALUES ('admin', MD5('admin123'), '管理员', 2, 1);

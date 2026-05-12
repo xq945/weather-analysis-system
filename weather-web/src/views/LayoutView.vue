@@ -15,6 +15,11 @@
           <span class="header-title">天气数据分析系统</span>
         </div>
         <div class="header-right">
+          <span class="filter-label">城市</span>
+          <el-select v-model="citiesStore.filterMode" size="small" style="width:140px">
+            <el-option value="all" label="所有城市" />
+            <el-option value="mine" label="我的关注" />
+          </el-select>
           <span class="nickname">{{ authStore.nickname }}</span>
           <el-button type="danger" size="small" @click="handleLogout">退出</el-button>
         </div>
@@ -27,12 +32,19 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useCitiesStore } from '../stores/cities'
 import AppSidebar from '../components/AppSidebar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const citiesStore = useCitiesStore()
+
+onMounted(() => {
+  citiesStore.load()
+})
 
 function handleLogout() {
   authStore.logout()
@@ -100,6 +112,11 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.filter-label {
+  color: #909399;
+  font-size: 13px;
 }
 
 .nickname {

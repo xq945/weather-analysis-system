@@ -15,5 +15,7 @@ public class User {
     private String username;
     private String password;
     private String nickname;
+    private Integer permission;
+    private Integer status;
     private LocalDateTime createdAt;
 }

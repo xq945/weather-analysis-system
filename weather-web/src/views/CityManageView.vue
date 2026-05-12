@@ -1,6 +1,36 @@
 <template>
   <div class="city-manage">
-    <el-card>
+    <!-- 管理员：查看所有用户的关注城市 -->
+    <el-card v-if="authStore.permission === 2">
+      <template #header>
+        <span>城市管理 · 所有用户关注</span>
+      </template>
+
+      <div class="add-row">
+        <el-input v-model="cityInput" placeholder="输入城市名，如：北京" size="large" style="width:300px"
+          @keyup.enter="handleAdd" />
+        <el-button type="primary" size="large" @click="handleAdd" :loading="adding">
+          添加关注
+        </el-button>
+      </div>
+
+      <el-table :data="citiesStore.adminAllList" style="width:100%;margin-top:20px" v-loading="loading" empty-text="暂无关注城市，请在上方添加">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="city" label="城市名" />
+        <el-table-column prop="nickname" label="关注者" width="150" />
+        <el-table-column prop="createdAt" label="添加时间" />
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button type="danger" size="small" @click="handleRemove(row)">
+              取消关注
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 普通用户：仅查看自己的关注 -->
+    <el-card v-else>
       <template #header>
         <span>城市管理</span>
       </template>
@@ -13,17 +43,10 @@
         </el-button>
       </div>
 
-      <el-table :data="cities" style="width:100%;margin-top:20px" v-loading="loading" empty-text="暂无关注城市，请在上方添加">
+      <el-table :data="citiesStore.myList" style="width:100%;margin-top:20px" v-loading="loading" empty-text="暂无关注城市，请在上方添加">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="city" label="城市名" />
         <el-table-column prop="createdAt" label="添加时间" />
-        <el-table-column label="操作" width="120">
-          <template #default="{ row }">
-            <el-button type="danger" size="small" @click="handleRemove(row)">
-              取消关注
-            </el-button>
-          </template>
-        </el-table-column>
       </el-table>
     </el-card>
   </div>
@@ -32,23 +55,25 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getCities, addCity, removeCity } from '../api/city'
+import { useAuthStore } from '../stores/auth'
+import { useCitiesStore } from '../stores/cities'
+import { addCity, removeCity } from '../api/city'
+
+const authStore = useAuthStore()
+const citiesStore = useCitiesStore()
 
 const cityInput = ref('')
-const cities = ref<any[]>([])
 const loading = ref(false)
 const adding = ref(false)
 
 async function loadCities() {
   loading.value = true
-  try {
-    const res = await getCities()
-    cities.value = res.data.data
-  } catch {
-    // handled by interceptor
-  } finally {
-    loading.value = false
+  await citiesStore.loadMy()
+  await citiesStore.loadAll()
+  if (authStore.permission === 2) {
+    await citiesStore.loadAdminAll()
   }
+  loading.value = false
 }
 
 async function handleAdd() {

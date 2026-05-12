@@ -32,6 +32,11 @@ const router = createRouter({
           path: 'analysis',
           name: 'Analysis',
           component: () => import('../views/AnalysisView.vue')
+        },
+        {
+          path: 'users',
+          name: 'Users',
+          component: () => import('../views/UserManageView.vue')
         }
       ]
     }
@@ -44,6 +49,13 @@ router.beforeEach((to, _from, next) => {
     next('/login')
   } else if (to.path === '/login' && token) {
     next('/dashboard')
+  } else if (to.path === '/users') {
+    const perm = Number(localStorage.getItem('permission') || 1)
+    if (perm !== 2) {
+      next('/dashboard')
+    } else {
+      next()
+    }
   } else {
     next()
   }

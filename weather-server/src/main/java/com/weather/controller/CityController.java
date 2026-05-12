@@ -42,6 +42,21 @@ public class CityController {
         return Result.ok(cities);
     }
 
+    @GetMapping("/all")
+    public Result<List<String>> listAllCities() {
+        return Result.ok(cityService.listAllCities());
+    }
+
+    @GetMapping("/admin/all")
+    public Result<?> listAllFollowedCities(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        try {
+            return Result.ok(cityService.listAllFollowedCities(userId));
+        } catch (RuntimeException e) {
+            return Result.error(403, e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{id}")
     public Result<Void> removeCity(@PathVariable Integer id,
                                     HttpServletRequest request) {
