@@ -16,7 +16,9 @@
       "Read(//c/develop/nvm/v24.14.1/**)",
       "Bash(export PATH=\"/c/develop/nvm/v24.14.1:$PATH\")",
       "Bash(npm -v)",
-      "Bash(mvn test *)"
+      "Bash(mvn test *)",
+      "Bash(npm run *)",
+      "Bash(npx vue-tsc *)"
     ]
   }
 }
