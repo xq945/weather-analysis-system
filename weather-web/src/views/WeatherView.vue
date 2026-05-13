@@ -5,11 +5,6 @@
         <el-select v-model="selectedCity" placeholder="选择城市" size="large" style="width:200px">
           <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city" />
         </el-select>
-        <el-button type="primary" size="large" @click="handleFetch" :loading="fetching">
-          拉取全部城市
-        </el-button>
-      </div>
-      <div class="toolbar-right">
         <el-button
           type="success" size="large"
           @click="handleFetchCity"
@@ -17,6 +12,11 @@
           :disabled="!selectedCity"
         >
           拉取当前城市
+        </el-button>
+      </div>
+      <div class="toolbar-right">
+        <el-button type="primary" size="large" @click="handleFetch" :loading="fetching">
+          拉取全部城市
         </el-button>
         <span v-if="lastFetch" class="last-fetch">上次拉取：{{ lastFetch }}</span>
       </div>

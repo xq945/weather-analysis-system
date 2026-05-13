@@ -290,29 +290,29 @@ function switchCompareChart() {
 </script>
 
 <style scoped>
-.analysis { display: flex; flex-direction: column; gap: 16px; }
+.analysis { display: flex; flex-direction: column; gap: 12px; }
 
 .top-bar { display: flex; align-items: center; }
 
 .filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .filters .label { font-weight: bold; color: #333; }
 
-.tip { padding: 60px 0; }
+.tip { padding: 40px 0; }
 
-.stat-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .stat-item {
-  flex: 1; min-width: 140px; background: #fff; border-radius: 8px; padding: 20px;
+  flex: 1; min-width: 140px; background: #fff; border-radius: 8px; padding: 14px 16px;
   text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
-.stat-num { display: block; font-size: 28px; font-weight: bold; color: #409EFF; }
-.stat-label { display: block; margin-top: 6px; font-size: 13px; color: #999; }
+.stat-num { display: block; font-size: 24px; font-weight: bold; color: #409EFF; }
+.stat-label { display: block; margin-top: 4px; font-size: 13px; color: #999; }
 
 .chart-select { display: flex; align-items: center; gap: 10px; }
 .chart-select .label { font-weight: bold; color: #333; }
 
-.chart-row { display: flex; gap: 16px; }
-.chart-box { flex: 1; background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.chart-row { display: flex; gap: 12px; }
+.chart-box { flex: 1; background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .chart-box.full-width { flex: 1; }
-.chart-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 8px; }
-.chart { width: 100%; height: 320px; }
+.chart-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 6px; }
+.chart { width: 100%; height: 300px; }
 </style>
