@@ -8,6 +8,10 @@ export function fetchWeather() {
   return api.post('/api/weather/fetch')
 }
 
+export function fetchCityWeather(city: string) {
+  return api.post('/api/weather/fetch-city', null, { params: { city } })
+}
+
 export function getWeatherNow(city: string) {
   return api.get('/api/weather/now', { params: { city } })
 }

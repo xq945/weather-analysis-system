@@ -268,6 +268,31 @@ public class WeatherService {
         return result;
     }
 
+    public Map<String, Object> fetchForCity(String city) {
+        int nowCount = 0;
+        int forecastCount = 0;
+        List<String> errors = new ArrayList<>();
+
+        try {
+            fetchNowForCity(city);
+            nowCount = 1;
+        } catch (Exception e) {
+            errors.add(city + "实时天气: " + e.getMessage());
+        }
+        try {
+            List<WeatherForecast> forecasts = fetchForecastForCity(city);
+            forecastCount = forecasts.size();
+        } catch (Exception e) {
+            errors.add(city + "预报: " + e.getMessage());
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("nowFetched", nowCount);
+        result.put("forecastFetched", forecastCount);
+        result.put("errors", errors);
+        return result;
+    }
+
     public Set<String> getAllFollowedCities() {
         List<FollowedCity> all = followedCityMapper.selectList(null);
         return all.stream().map(FollowedCity::getCity).collect(Collectors.toSet());

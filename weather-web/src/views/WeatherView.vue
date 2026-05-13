@@ -1,13 +1,25 @@
 <template>
   <div class="weather-page">
     <div class="toolbar">
-      <el-select v-model="selectedCity" placeholder="选择城市" size="large" style="width:200px">
-        <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city" />
-      </el-select>
-      <el-button type="primary" size="large" @click="handleFetch" :loading="fetching">
-        拉取天气数据
-      </el-button>
-      <span v-if="lastFetch" class="last-fetch">上次拉取：{{ lastFetch }}</span>
+      <div class="toolbar-left">
+        <el-select v-model="selectedCity" placeholder="选择城市" size="large" style="width:200px">
+          <el-option v-for="c in citiesStore.activeList" :key="c.city" :label="c.city" :value="c.city" />
+        </el-select>
+        <el-button type="primary" size="large" @click="handleFetch" :loading="fetching">
+          拉取全部城市
+        </el-button>
+      </div>
+      <div class="toolbar-right">
+        <el-button
+          type="success" size="large"
+          @click="handleFetchCity"
+          :loading="fetchingCity"
+          :disabled="!selectedCity"
+        >
+          拉取当前城市
+        </el-button>
+        <span v-if="lastFetch" class="last-fetch">上次拉取：{{ lastFetch }}</span>
+      </div>
     </div>
 
     <div v-if="!selectedCity">
@@ -79,11 +91,12 @@
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useCitiesStore } from '../stores/cities'
-import { fetchWeather, getWeatherNow, getForecast } from '../api/weather'
+import { fetchWeather, fetchCityWeather, getWeatherNow, getForecast } from '../api/weather'
 
 const citiesStore = useCitiesStore()
 const selectedCity = ref('')
 const fetching = ref(false)
+const fetchingCity = ref(false)
 const lastFetch = ref('')
 
 const nowData = ref<any>(null)
@@ -132,12 +145,36 @@ async function handleFetch() {
   } catch { /* ignore */ }
   finally { fetching.value = false }
 }
+
+async function handleFetchCity() {
+  if (!selectedCity.value) return
+  fetchingCity.value = true
+  try {
+    const res = await fetchCityWeather(selectedCity.value)
+    const d = res.data.data
+    ElMessage.success(`${selectedCity.value} 拉取完成：${d.nowFetched} 条实时，${d.forecastFetched} 条预报`)
+    lastFetch.value = new Date().toLocaleString()
+    if (d.errors && d.errors.length > 0) {
+      d.errors.forEach((e: string) => ElMessage.warning(e))
+    }
+    // 刷新当前城市数据
+    const [nowRes, fcRes] = await Promise.all([
+      getWeatherNow(selectedCity.value),
+      getForecast(selectedCity.value)
+    ])
+    nowData.value = nowRes.data.data
+    forecastData.value = fcRes.data.data || []
+  } catch { /* ignore */ }
+  finally { fetchingCity.value = false }
+}
 </script>
 
 <style scoped>
 .weather-page { display: flex; flex-direction: column; gap: 20px; }
 
-.toolbar { display: flex; align-items: center; gap: 12px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; }
+.toolbar-left { display: flex; align-items: center; gap: 12px; }
+.toolbar-right { display: flex; align-items: center; gap: 12px; }
 
 .last-fetch { color: #999; font-size: 13px; }
 

@@ -2,10 +2,9 @@
   <div class="dashboard">
     <div class="header">
       <h2>天气概览</h2>
-      <el-button type="primary" @click="handleFetch" :loading="fetching">拉取最新数据</el-button>
     </div>
 
-    <el-empty v-if="cities.length === 0" :description="citiesStore.filterMode === 'mine' ? '你还没有关注城市，请前往「城市管理」添加' : '暂无城市数据，请先拉取天气数据'" />
+    <el-empty v-if="cities.length === 0" :description="citiesStore.filterMode === 'mine' ? '你还没有关注城市，请前往「城市管理」添加' : '暂无城市数据'" />
 
     <div class="card-grid" v-if="cities.length > 0">
       <el-card v-for="c in cities" :key="c.city" class="weather-card" shadow="hover">
@@ -24,7 +23,7 @@
           </div>
         </div>
         <div v-else class="no-data">
-          暂无数据，请点击「拉取最新数据」
+          暂无数据，系统定时采集后将自动更新
         </div>
       </el-card>
     </div>
@@ -33,13 +32,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useCitiesStore } from '../stores/cities'
-import { getOverview, fetchWeather } from '../api/weather'
+import { getOverview } from '../api/weather'
 
 const citiesStore = useCitiesStore()
 const allCities = ref<any[]>([])
-const fetching = ref(false)
 
 const cities = computed(() => {
   if (citiesStore.filterMode === 'mine') {
@@ -62,21 +59,6 @@ async function loadOverview() {
 watch(() => citiesStore.filterMode, () => {
   // data stays the same, computed will re-filter
 })
-
-async function handleFetch() {
-  fetching.value = true
-  try {
-    const res = await fetchWeather()
-    const d = res.data.data
-    ElMessage.success(`拉取完成：${d.nowFetched} 个城市`)
-    await loadOverview()
-  } catch (err: any) {
-    ElMessage.error(err?.response?.data?.message || '拉取失败')
-  } finally {
-    fetching.value = false
-  }
-}
-
 onMounted(loadOverview)
 </script>
 

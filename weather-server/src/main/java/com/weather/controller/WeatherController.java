@@ -33,6 +33,12 @@ public class WeatherController {
         return Result.ok(result);
     }
 
+    @PostMapping("/fetch-city")
+    public Result<?> fetchCityWeather(@RequestParam String city) {
+        Map<String, Object> result = weatherService.fetchForCity(city);
+        return Result.ok(result);
+    }
+
     @GetMapping("/now")
     public Result<WeatherData> getNow(@RequestParam String city) {
         WeatherData data = weatherService.getLatestNow(city);
