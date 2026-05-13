@@ -2,6 +2,7 @@ com\weather\mapper\WeatherForecastMapper.class
 com\weather\config\WeatherScheduler.class
 com\weather\controller\CityController.class
 com\weather\config\GlobalExceptionHandler.class
+com\weather\controller\UserController.class
 com\weather\config\JwtInterceptor.class
 com\weather\mapper\UserMapper.class
 com\weather\service\WeatherService.class
@@ -9,9 +10,11 @@ com\weather\controller\WeatherController.class
 com\weather\service\CityService.class
 com\weather\WeatherApplication.class
 com\weather\util\JwtUtil.class
+com\weather\util\WeatherTextUtil.class
 com\weather\dto\LoginRequest.class
 com\weather\dto\Result.class
 com\weather\dto\RegisterRequest.class
+com\weather\service\UserService.class
 com\weather\entity\WeatherForecast.class
 com\weather\util\QWeatherApiClient.class
 com\weather\entity\User.class

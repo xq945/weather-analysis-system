@@ -3,6 +3,7 @@ C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\entity\User.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\entity\CityList.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\service\WeatherService.java
+C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\service\UserService.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\controller\AuthController.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\dto\Result.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\entity\WeatherData.java
@@ -10,7 +11,9 @@ C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\entity\FollowedCity.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\controller\WeatherController.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\util\JwtUtil.java
+C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\controller\UserController.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\mapper\WeatherForecastMapper.java
+C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\util\WeatherTextUtil.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\service\CityService.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\mapper\UserMapper.java
 C:\files\github\weather-analysis-system\weather-server\src\main\java\com\weather\dto\RegisterRequest.java
