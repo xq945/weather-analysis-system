@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
@@ -46,9 +47,9 @@ public class QWeatherApiClient {
         return headers;
     }
 
-    private JsonNode callApi(String url) {
+    private JsonNode callApi(URI uri) {
         HttpEntity<?> entity = new HttpEntity<>(buildHeaders());
-        ResponseEntity<byte[]> resp = restTemplate.exchange(url, HttpMethod.GET, entity, byte[].class);
+        ResponseEntity<byte[]> resp = restTemplate.exchange(uri, HttpMethod.GET, entity, byte[].class);
         try {
             byte[] body = resp.getBody();
             if (body != null && body.length >= 2 && body[0] == (byte) 0x1F && body[1] == (byte) 0x8B) {
@@ -81,9 +82,11 @@ public class QWeatherApiClient {
             return city.getCityCode();
         }
         // 本地没有，调 geo API
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/geo/v2/city/lookup")
+        URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/geo/v2/city/lookup")
                 .queryParam("location", cityName)
-                .toUriString();
+                .build()
+                .encode()
+                .toUri();
         JsonNode root = callApi(url);
         String code = root.path("code").asText();
         if (!"200".equals(code)) {
@@ -111,10 +114,12 @@ public class QWeatherApiClient {
     }
 
     public JsonNode getWeatherNow(String cityId) {
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/now")
+        URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/now")
                 .queryParam("location", cityId)
                 .queryParam("lang", "zh")
-                .toUriString();
+                .build()
+                .encode()
+                .toUri();
         JsonNode root = callApi(url);
         if (!"200".equals(root.path("code").asText())) {
             throw new RuntimeException("获取实时天气失败 code=" + root.path("code").asText());
@@ -123,10 +128,12 @@ public class QWeatherApiClient {
     }
 
     public JsonNode getWeather7d(String cityId) {
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/7d")
+        URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/7d")
                 .queryParam("location", cityId)
                 .queryParam("lang", "zh")
-                .toUriString();
+                .build()
+                .encode()
+                .toUri();
         JsonNode root = callApi(url);
         if (!"200".equals(root.path("code").asText())) {
             throw new RuntimeException("获取7天预报失败 code=" + root.path("code").asText());
