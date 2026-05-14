@@ -159,7 +159,7 @@ cp weather-server/src/main/resources/application-local.yml.example \
 ```yaml
 spring:
   datasource:
-    username: weather
+    username: 你的数据库用户名
     password: 你的数据库密码
 
 jwt:
