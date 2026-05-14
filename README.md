@@ -7,6 +7,7 @@
 | 层级 | 技术 |
 |------|------|
 | 后端框架 | Spring Boot 3.2.5 |
+| HTTP 客户端 | OkHttp (SSE) |
 | ORM | MyBatis-Plus 3.5.6 |
 | 数据库 | MySQL |
 | 认证 | JWT (jjwt 0.12) |
@@ -29,8 +30,9 @@
 - **数据分析** — 单城市统计、多城市对比分析
 - **城市管理** — 关注城市列表，支持搜索添加，支持切换查看全部/我的城市
 - **定时采集** — 每 30 分钟自动拉取实时天气，每日 8 点拉取预报
-- **AI 智能助手** — 基于 RAG（检索增强生成）的自然语言问答，支持流式 SSE 输出，检索不到时自动降级调用大模型
-- **分析报告生成** — 自动生成 Markdown 格式天气分析报告，向量化存储于 Qdrant
+- **AI 智能助手** — 基于 RAG（检索增强生成）的自然语言问答，支持流式 SSE 输出。自动从问题中提取城市名，检索不到时降级调用大模型。预报数据拉取时自动向量化，支持查询未来天气
+- **分析报告生成** — 自动生成 Markdown 格式天气分析报告（日报/周报/深度分析），向量化存储于 Qdrant
+- **预报数据向量化** — 拉取 7 天预报时自动向量化至 Qdrant，支持 RAG 检索未来天气
 
 ## 系统架构
 
@@ -39,17 +41,17 @@
 │  前端 Vue 3   │────▶│                后端 Spring Boot                  │
 │  localhost:3000│    │               localhost:8080                     │
 └──────────────┘     │                                                  │
-                     │  ┌───────────┐  ┌──────────┐  ┌───────────────┐  │
-                     │  │ ChatService│─▶│Qdrant检索 │  │ EmbeddingService│  │
-                     │  └─────┬─────┘  └──────────┘  └───────┬───────┘  │
-                     │        │                              │          │
-                     │        ▼                              ▼          │
-                     │  ┌───────────┐                 ┌───────────┐      │
-                     │  │ LlmService│                 │ DashScope  │      │
-                     │  │ (DeepSeek)│                 │ Embedding  │      │
-                     │  └───────────┘                 └───────────┘      │
-                     │                                                  │
-                     └──────────────────────────────────────────────────┘
+                     │  ┌───────────┐  ┌──────────────┐  ┌───────────────┐  ┌───────────────┐  │
+                     │  │ ChatService│─▶│ Qdrant 检索   │  │EmbeddingService│  │ WeatherService│  │
+                     │  └─────┬─────┘  └──────────────┘  └───────┬───────┘  │ (预报向量化)   │  │
+                     │        │                                  │          └───────┬───────┘  │
+                     │        ▼                                  ▼                  │          │
+                     │  ┌───────────┐                     ┌───────────┐            │          │
+                     │  │ LlmService│                     │ DashScope │            │          │
+                     │  │ (DeepSeek)│                     │ Embedding │            │          │
+                     │  └───────────┘                     └───────────┘            │          │
+                     │                                                           │          │
+                     └───────────────────────────────────────────────────────────────────────┘
                                       │
                     ┌─────────────────┼──────────────────┐
                     ▼                 ▼                   ▼
@@ -72,7 +74,7 @@
     │
     ├─→ RetrieverService.search(vector, city="北京", dateRange, topK=10)
     │    └─→ Qdrant 向量检索 + 元数据过滤（city match + date range）
-    │         ├─ 命中阈值 ≥ 0.6 → 返回检索片段
+    │         ├─ 命中阈值 ≥ 0.6 → 返回检索片段（含历史报告 + 预报）
     │         └─ 未命中 → 空结果
     │
     ├─→ 构建 System Prompt
@@ -98,7 +100,8 @@ weather-analysis-system/
 │   │   ├── entity/                 # 实体类（User/FollowedCity/WeatherData/WeatherReport）
 │   │   ├── mapper/                 # MyBatis Mapper
 │   │   ├── service/                # 业务逻辑层
-│   │   │   ├── ChatService.java    # RAG 编排核心（向量化→检索→Prompt→LLM）
+│   │   │   ├── ChatService.java    # RAG 编排核心（向量化→检索→Prompt→LLM，含日期上下文）
+│   │   │   ├── WeatherService.java # 和风天气 API 对接（实时/预报/统计/向量化）
 │   │   │   ├── EmbeddingService.java # DashScope Embedding API 调用
 │   │   │   ├── LlmService.java     # DeepSeek LLM API 调用（流式/非流式）
 │   │   │   ├── RetrieverService.java # Qdrant 向量检索与写入
