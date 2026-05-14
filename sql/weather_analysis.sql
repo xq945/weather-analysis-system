@@ -100,5 +100,22 @@ CREATE TABLE IF NOT EXISTS city_list (
 ('银川', '101170101', '宁夏'),
 ('西宁', '101150101', '青海');*/
 
+-- 分析报告主表（AI 助手 RAG 数据源）
+CREATE TABLE IF NOT EXISTS weather_report (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    report_id VARCHAR(64) NOT NULL UNIQUE COMMENT '业务ID，如 rpt_20260513_beijing_001',
+    city VARCHAR(50) NOT NULL,
+    report_date DATE NOT NULL,
+    report_type TINYINT NOT NULL DEFAULT 1 COMMENT '类型: 1=日报, 2=周报, 3=深度分析',
+    title VARCHAR(200) COMMENT '报告标题',
+    content TEXT COMMENT '完整报告原文（Markdown）',
+    chunk_count INT NOT NULL DEFAULT 0 COMMENT '向量分片数量',
+    qdrant_synced TINYINT NOT NULL DEFAULT 0 COMMENT '是否已同步向量库: 0=未同步, 1=已同步',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_city_date (city, report_date),
+    INDEX idx_qdrant_synced (qdrant_synced)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 默认管理员账号：admin / admin123
 INSERT IGNORE INTO user (username, password, nickname, permission, status) VALUES ('admin', MD5('admin123'), '管理员', 2, 1);

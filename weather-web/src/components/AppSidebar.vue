@@ -21,6 +21,10 @@
         <el-icon><DataAnalysis /></el-icon>
         <span>数据分析</span>
       </el-menu-item>
+      <el-menu-item index="/assistant">
+        <el-icon><ChatDotRound /></el-icon>
+        <span>天气助手</span>
+      </el-menu-item>
       <el-menu-item v-if="authStore.permission === 2" index="/users">
         <el-icon><Setting /></el-icon>
         <span>用户管理</span>

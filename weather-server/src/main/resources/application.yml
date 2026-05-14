@@ -9,10 +9,12 @@ server:
     uri-encoding: UTF-8
 
 spring:
+  profiles:
+    active: local
   datasource:
     url: jdbc:mysql://localhost:3306/weather_analysis?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-    username: weather
-    password: 123456
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -24,9 +26,32 @@ mybatis-plus:
       id-type: auto
 
 jwt:
-  secret: weather-analysis-system-jwt-secret-key-2026
+  secret: ${JWT_SECRET:}
   expiration: 86400000
 
 qweather:
-  api-key: ${QWATHER_API_KEY}
+  api-key: ${QWATHER_API_KEY:}
   base-url: https://mb4ewug4a2.re.qweatherapi.com
+
+# Qdrant 向量数据库
+qdrant:
+  host: ${QDRANT_HOST:localhost}
+  port: ${QDRANT_PORT:6333}
+  collection: weather_reports
+  api-key: null
+
+# Embedding 模型（阿里云百炼 DashScope）
+embedding:
+  api-key: ${DASHSCOPE_API_KEY:}
+  base-url: https://dashscope.aliyuncs.com/compatible-mode
+  model: text-embedding-v4
+  dimension: 1024
+  batch-size: 20
+
+# LLM 大模型（DeepSeek）
+llm:
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+  max-tokens: 1000
+  temperature: 0.3

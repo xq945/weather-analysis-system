@@ -1,9 +1,11 @@
 package com.weather;
 
+import okhttp3.OkHttpClient;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,6 +19,11 @@ public class WeatherApplication {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        return new RestTemplate(new JdkClientHttpRequestFactory());
+    }
+
+    @Bean
+    public OkHttpClient okHttpClient() {
+        return new OkHttpClient();
     }
 }

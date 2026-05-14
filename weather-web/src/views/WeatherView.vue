@@ -92,6 +92,9 @@ import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useCitiesStore } from '../stores/cities'
 import { fetchWeather, fetchCityWeather, getWeatherNow, getForecast } from '../api/weather'
+import { generateReport } from '../api/report'
+
+const today = () => new Date().toISOString().slice(0, 10)
 
 const citiesStore = useCitiesStore()
 const selectedCity = ref('')
@@ -134,6 +137,9 @@ async function handleFetch() {
     if (d.errors && d.errors.length > 0) {
       d.errors.forEach((e: string) => ElMessage.warning(e))
     }
+    // 拉取成功后自动生成所有关注城市的今日报告
+    citiesStore.activeList.forEach((c: any) => autoGenerateReport(c.city))
+
     if (selectedCity.value) {
       const [nowRes, fcRes] = await Promise.all([
         getWeatherNow(selectedCity.value),
@@ -144,6 +150,13 @@ async function handleFetch() {
     }
   } catch { /* ignore */ }
   finally { fetching.value = false }
+}
+
+/** 拉取天气成功后自动生成分析报告（静默执行，不阻塞 UI） */
+async function autoGenerateReport(city: string) {
+  try {
+    await generateReport(city, today(), 1)
+  } catch { /* 报告生成失败不影响正常使用 */ }
 }
 
 async function handleFetchCity() {
@@ -164,6 +177,9 @@ async function handleFetchCity() {
     ])
     nowData.value = nowRes.data.data
     forecastData.value = fcRes.data.data || []
+
+    // 拉取成功后自动生成今日报告
+    autoGenerateReport(selectedCity.value)
   } catch { /* ignore */ }
   finally { fetchingCity.value = false }
 }

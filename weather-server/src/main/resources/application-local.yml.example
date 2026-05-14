@@ -1,0 +1,31 @@
+# ===========================================
+# 本地开发配置模板
+# ===========================================
+# 复制此文件为 application-local.yml 并填入真实值
+# cp application-local.yml.example application-local.yml
+#
+# 启动方式：IDE 中设置 spring.profiles.active=local
+#         或命令行：mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+spring:
+  datasource:
+    username: 你的数据库用户名
+    password: 你的数据库密码
+
+jwt:
+  secret: 你的JWT密钥（随意字符串即可）
+
+qweather:
+  api-key: 你的和风天气API Key
+
+qdrant:
+  api-key:          # Qdrant 默认无鉴权，留空即可
+
+# Embedding（阿里云百炼 DashScope）
+# 前往 https://bailian.console.aliyun.com 获取 API Key
+embedding:
+  api-key: 你的百炼 API Key (sk-xxxx)
+
+# LLM 对话（DeepSeek）
+llm:
+  api-key: 你的DeepSeek API Key (sk-xxxx)
