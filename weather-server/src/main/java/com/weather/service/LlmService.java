@@ -119,6 +119,14 @@ public class LlmService {
                             @Override
                             public void onFailure(EventSource es, Throwable t, okhttp3.Response response) {
                                 log.error("LLM SSE 连接失败: {}", t != null ? t.getMessage() : "unknown");
+                                try {
+                                    emitter.send(SseEmitter.event()
+                                            .name("delta")
+                                            .data("抱歉，处理您的请求时出现错误，请稍后重试。"));
+                                    emitter.send(SseEmitter.event().name("done").data("[]"));
+                                } catch (IOException e) {
+                                    // emitter 已无法发送，忽略
+                                }
                                 emitter.completeWithError(t != null ? t : new RuntimeException("LLM 连接失败"));
                             }
                         });
@@ -128,6 +136,14 @@ public class LlmService {
 
             } catch (Exception e) {
                 log.error("LLM 流式调用失败: {}", e.getMessage());
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("delta")
+                            .data("抱歉，处理您的请求时出现错误，请稍后重试。"));
+                    emitter.send(SseEmitter.event().name("done").data("[]"));
+                } catch (IOException ex) {
+                    // emitter 已无法发送，忽略
+                }
                 emitter.completeWithError(e);
             }
         });

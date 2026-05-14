@@ -21,7 +21,10 @@ public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
-    private static final String DEFAULT_SYSTEM_PROMPT = "你是天气数据分析助手。请根据用户的问题给出简明准确的回答。";
+    private String defaultSystemPrompt() {
+        return "当前系统日期：" + LocalDate.now() + "。请根据此日期理解\"今天\"\"昨天\"\"明天\"等相对日期概念。\n"
+             + "你是天气数据分析助手。请根据用户的问题给出简明准确的回答。";
+    }
 
     private final EmbeddingService embeddingService;
     private final RetrieverService retrieverService;
@@ -94,12 +97,12 @@ public class ChatService {
                     } else {
                         // 检索不到结果，直接调用大模型
                         log.info("Qdrant 未检索到 {} 的相关报告，直接调用 LLM", finalCity);
-                        systemPrompt = DEFAULT_SYSTEM_PROMPT;
+                        systemPrompt = defaultSystemPrompt();
                     }
                 } else {
                     // 未识别到城市，直接调用大模型
                     log.info("未识别到城市，直接调用 LLM");
-                    systemPrompt = DEFAULT_SYSTEM_PROMPT;
+                    systemPrompt = defaultSystemPrompt();
                 }
 
                 // 嵌套 lambda 需要 effectively final 变量
@@ -181,10 +184,10 @@ public class ChatService {
                         sources.add(new ChatResponse.SourceInfo(r.getCity(), r.getDate(), r.getSection()));
                     }
                 } else {
-                    systemPrompt = DEFAULT_SYSTEM_PROMPT;
+                    systemPrompt = defaultSystemPrompt();
                 }
             } else {
-                systemPrompt = DEFAULT_SYSTEM_PROMPT;
+                systemPrompt = defaultSystemPrompt();
             }
 
             String answer = llmService.chat(systemPrompt, req.getQuestion());
@@ -228,6 +231,8 @@ public class ChatService {
      */
     private String buildSystemPrompt(List<SearchResult> results) {
         StringBuilder sb = new StringBuilder();
+        sb.append("当前系统日期：").append(LocalDate.now())
+          .append("。请据此理解\"今天\"\"昨天\"\"明天\"等相对日期。\n");
         sb.append("你是天气数据分析助手。请根据以下检索到的历史天气分析报告片段回答用户问题。");
         sb.append("若片段信息不足以回答，请明确告知用户，不要编造数据。\n\n");
         sb.append("【检索片段】\n");

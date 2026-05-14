@@ -10,6 +10,8 @@ import com.weather.mapper.WeatherDataMapper;
 import com.weather.mapper.WeatherForecastMapper;
 import com.weather.util.QWeatherApiClient;
 import com.weather.util.WeatherTextUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,19 +23,27 @@ import java.util.stream.Collectors;
 @Service
 public class WeatherService {
 
+    private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
+
     private final QWeatherApiClient apiClient;
     private final WeatherDataMapper weatherDataMapper;
     private final WeatherForecastMapper forecastMapper;
     private final FollowedCityMapper followedCityMapper;
+    private final EmbeddingService embeddingService;
+    private final RetrieverService retrieverService;
 
     public WeatherService(QWeatherApiClient apiClient,
                           WeatherDataMapper weatherDataMapper,
                           WeatherForecastMapper forecastMapper,
-                          FollowedCityMapper followedCityMapper) {
+                          FollowedCityMapper followedCityMapper,
+                          EmbeddingService embeddingService,
+                          RetrieverService retrieverService) {
         this.apiClient = apiClient;
         this.weatherDataMapper = weatherDataMapper;
         this.forecastMapper = forecastMapper;
         this.followedCityMapper = followedCityMapper;
+        this.embeddingService = embeddingService;
+        this.retrieverService = retrieverService;
     }
 
     public WeatherData fetchNowForCity(String city) {
@@ -81,7 +91,57 @@ public class WeatherService {
             forecastMapper.insert(forecast);
             result.add(forecast);
         }
+        // 预报数据向量化到 Qdrant，供 RAG 检索
+        try {
+            vectorizeForecasts(city);
+        } catch (Exception e) {
+            log.error("预报向量化失败: city={}, error={}", city, e.getMessage());
+        }
         return result;
+    }
+
+    /**
+     * 将预报数据向量化到 Qdrant
+     */
+    private void vectorizeForecasts(String city) {
+        List<WeatherForecast> forecasts = forecastMapper.selectList(
+                new LambdaQueryWrapper<WeatherForecast>()
+                        .eq(WeatherForecast::getCity, city)
+                        .ge(WeatherForecast::getForecastDate, LocalDate.now())
+                        .orderByAsc(WeatherForecast::getForecastDate)
+        );
+        if (forecasts.isEmpty()) return;
+
+        String reportId = "fcst_" + city;
+        List<String> chunks = new ArrayList<>();
+        List<String> sections = new ArrayList<>();
+        List<Float> tempMaxes = new ArrayList<>();
+        List<Float> tempMins = new ArrayList<>();
+
+        for (WeatherForecast f : forecasts) {
+            String chunk = String.format(
+                    "【%s %s 天气预报】白天：%s，最高 %.1f℃；夜间：%s，最低 %.1f℃。湿度 %.0f%%，风力 %.1f 级。",
+                    city, f.getForecastDate(),
+                    f.getWeatherTextDay(), f.getTempMax(),
+                    f.getWeatherTextNight(), f.getTempMin(),
+                    f.getHumidity(), f.getWindSpeed()
+            );
+            chunks.add(chunk);
+            sections.add("预报-" + f.getForecastDate());
+            tempMaxes.add(f.getTempMax() != null ? f.getTempMax() : 0f);
+            tempMins.add(f.getTempMin() != null ? f.getTempMin() : 0f);
+        }
+
+        List<float[]> vectors = embeddingService.embedBatch(chunks);
+
+        // 清理旧预报向量，写入最新预报
+        retrieverService.deleteByReportId(reportId);
+        retrieverService.upsertChunks(
+                reportId, chunks, vectors, city,
+                LocalDate.now().toString(), 4, sections,
+                tempMaxes, tempMins, "预报"
+        );
+        log.info("预报向量化完成: city={}, days={}", city, forecasts.size());
     }
 
     public Map<String, Object> fetchAllForUser(Long userId) {

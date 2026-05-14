@@ -4,10 +4,6 @@
       <div class="chat-header">
         <h2>天气助手</h2>
         <div class="header-controls">
-          <el-select v-model="selectedCity" placeholder="自动识别城市" clearable size="default" style="width:160px">
-            <el-option label="自动识别城市" value="" />
-            <el-option v-for="c in cityList" :key="c.city" :label="c.city" :value="c.city" />
-          </el-select>
           <el-button @click="clearChat" :icon="'Delete'">清空对话</el-button>
         </div>
       </div>
@@ -65,9 +61,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick } from 'vue'
 import { askStream, type SourceInfo } from '../api/chat'
-import { useCitiesStore } from '../stores/cities'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -75,22 +70,11 @@ interface Message {
   sources?: SourceInfo[]
 }
 
-const citiesStore = useCitiesStore()
-const cityList = ref<any[]>([])
-const selectedCity = ref('')
-
 const question = ref('')
 const messages = ref<Message[]>([])
 const streaming = ref(false)
 const streamingContent = ref('')
 const messagesContainer = ref<HTMLElement>()
-
-onMounted(async () => {
-  if (citiesStore.allList.length === 0) {
-    await citiesStore.load()
-  }
-  cityList.value = citiesStore.allList
-})
 
 async function sendMessage() {
   const q = question.value.trim()
@@ -105,9 +89,6 @@ async function sendMessage() {
   scrollToBottom()
 
   const params: any = { question: q }
-  if (selectedCity.value) {
-    params.city = selectedCity.value
-  }
 
   await askStream(
     params,
