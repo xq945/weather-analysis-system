@@ -117,5 +117,5 @@ CREATE TABLE IF NOT EXISTS weather_report (
     INDEX idx_qdrant_synced (qdrant_synced)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 默认管理员账号：admin / admin123
-INSERT IGNORE INTO user (username, password, nickname, permission, status) VALUES ('admin', MD5('admin123'), '管理员', 2, 1);
+-- 默认管理员账号：admin / admin123（BCrypt 加密）
+INSERT IGNORE INTO user (username, password, nickname, permission, status) VALUES ('admin', '$2b$10$R.Hpliz33DUPwfzT2pd.luAB5eAHzfo8ZL52KA9aHX6zrObleoTxG', '管理员', 2, 1);

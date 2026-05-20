@@ -6,10 +6,9 @@ import com.weather.dto.RegisterRequest;
 import com.weather.entity.User;
 import com.weather.mapper.UserMapper;
 import com.weather.util.JwtUtil;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,10 +17,12 @@ public class AuthService {
 
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserMapper userMapper, JwtUtil jwtUtil) {
+    public AuthService(UserMapper userMapper, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public Map<String, Object> register(RegisterRequest request) {
@@ -33,7 +34,7 @@ public class AuthService {
 
         User user = new User();
         user.setUsername(request.getUsername());
-        user.setPassword(md5Hash(request.getPassword()));
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname() != null ? request.getNickname() : request.getUsername());
         user.setPermission(1);
         user.setStatus(1);
@@ -52,7 +53,7 @@ public class AuthService {
         wrapper.eq(User::getUsername, request.getUsername());
         User user = userMapper.selectOne(wrapper);
 
-        if (user == null || !user.getPassword().equals(md5Hash(request.getPassword()))) {
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("用户名或密码错误");
         }
         if (user.getStatus() != null && user.getStatus() == 0) {
@@ -69,9 +70,5 @@ public class AuthService {
 
     public User getCurrentUser(Long userId) {
         return userMapper.selectById(userId);
-    }
-
-    private String md5Hash(String input) {
-        return DigestUtils.md5DigestAsHex(input.getBytes(StandardCharsets.UTF_8));
     }
 }
