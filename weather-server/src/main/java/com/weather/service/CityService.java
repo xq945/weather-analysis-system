@@ -87,15 +87,22 @@ public class CityService {
         checkAdmin(adminUserId);
 
         List<FollowedCity> all = followedCityMapper.selectList(null);
+
+        List<Integer> userIds = all.stream()
+                .map(FollowedCity::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Integer, String> nicknameMap = userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u.getNickname() != null ? u.getNickname() : "未知用户"));
+
         return all.stream().map(fc -> {
             Map<String, Object> item = new HashMap<>();
             item.put("id", fc.getId());
             item.put("city", fc.getCity());
             item.put("userId", fc.getUserId());
             item.put("createdAt", fc.getCreatedAt());
-
-            User u = userMapper.selectById(fc.getUserId());
-            item.put("nickname", u != null ? u.getNickname() : "未知用户");
+            item.put("nickname", nicknameMap.getOrDefault(fc.getUserId(), "未知用户"));
             return item;
         }).collect(Collectors.toList());
     }
