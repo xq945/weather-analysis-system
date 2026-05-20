@@ -1,5 +1,6 @@
 package com.weather.controller;
 
+import com.weather.config.LoginRateLimiter;
 import com.weather.dto.LoginRequest;
 import com.weather.dto.RegisterRequest;
 import com.weather.dto.Result;
@@ -16,9 +17,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final LoginRateLimiter loginRateLimiter;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, LoginRateLimiter loginRateLimiter) {
         this.authService = authService;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
     @PostMapping("/register")
@@ -28,9 +31,17 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
-        Map<String, Object> result = authService.login(request);
-        return Result.ok(result);
+    public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest request,
+                                              HttpServletRequest httpRequest) {
+        loginRateLimiter.check(httpRequest);
+        try {
+            Map<String, Object> result = authService.login(request);
+            loginRateLimiter.recordSuccess(httpRequest);
+            return Result.ok(result);
+        } catch (IllegalArgumentException e) {
+            loginRateLimiter.recordFailure(httpRequest);
+            return Result.error(400, e.getMessage());
+        }
     }
 
     @GetMapping("/me")
