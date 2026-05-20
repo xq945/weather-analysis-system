@@ -36,7 +36,8 @@ public class WeatherScheduler {
         for (String city : cities) {
             try {
                 weatherService.fetchNowForCity(city);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.error("定时获取实时天气失败: city={}", city, e);
             }
         }
     }
@@ -48,7 +49,8 @@ public class WeatherScheduler {
         for (String city : cities) {
             try {
                 weatherService.fetchForecastForCity(city);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.error("定时获取预报数据失败: city={}", city, e);
             }
         }
     }
