@@ -32,6 +32,15 @@ mybatis-plus:
     db-config:
       id-type: auto
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     com.weather.mapper: debug
