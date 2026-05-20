@@ -154,8 +154,8 @@ async function handleLogin() {
     }
     ElMessage.success('登录成功')
     router.push('/dashboard')
-  } catch {
-    // error handled by interceptor
+  } catch (e: any) {
+    ElMessage.error(e.message || '登录失败')
   } finally {
     loading.value = false
   }
@@ -169,8 +169,8 @@ async function handleRegister() {
     await authStore.register(regForm.username, regForm.password, regForm.nickname || regForm.username)
     ElMessage.success('注册成功，已自动登录')
     router.push('/dashboard')
-  } catch {
-    // error handled by interceptor
+  } catch (e: any) {
+    ElMessage.error(e.message || '注册失败')
   } finally {
     loading.value = false
   }
