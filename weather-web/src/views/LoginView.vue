@@ -63,7 +63,7 @@
                 </el-input>
               </el-form-item>
               <el-form-item prop="password">
-                <el-input v-model="regForm.password" type="password" placeholder="请输入密码（至少4个字符）" show-password>
+                <el-input v-model="regForm.password" type="password" placeholder="请输入密码（8-100位，需含大小写字母和数字）" show-password>
                   <template #prefix>
                     <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                       <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M12 14v2"/>
@@ -131,7 +131,8 @@ const regRules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 4, message: '密码至少4个字符', trigger: 'blur' },
+    { min: 8, max: 100, message: '密码长度8-100个字符', trigger: 'blur' },
+    { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, message: '密码需包含大小写字母和数字', trigger: 'blur' },
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
