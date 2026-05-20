@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { useCitiesStore } from '../stores/cities'
 import { getStatistics, getCompare } from '../api/weather'
@@ -172,11 +172,22 @@ async function loadCompare() {
 
 function fmt(v: any) { return v != null ? Number(Number(v).toFixed(1)) : null }
 
+const chartInstances: echarts.ECharts[] = []
+
+onUnmounted(() => {
+  chartInstances.forEach(inst => inst.dispose())
+  chartInstances.length = 0
+})
+
 function renderChart(dom: HTMLDivElement | null, option: any) {
   if (!dom) return
   const instance = echarts.getInstanceByDom(dom)
-  if (instance) instance.dispose()
-  echarts.init(dom).setOption(option)
+  if (instance) {
+    instance.dispose()
+  }
+  const chart = echarts.init(dom)
+  chart.setOption(option)
+  chartInstances.push(chart)
 }
 
 function switchSingleChart() {
