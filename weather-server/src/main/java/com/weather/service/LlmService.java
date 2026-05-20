@@ -14,8 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 
 @Service
 public class LlmService {
@@ -28,11 +27,12 @@ public class LlmService {
     private final String model;
     private final int maxTokens;
     private final double temperature;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Executor asyncExecutor;
     private final OkHttpClient httpClient;
 
     public LlmService(ObjectMapper objectMapper,
                       OkHttpClient okHttpClient,
+                      Executor asyncExecutor,
                       @Value("${llm.api-key}") String apiKey,
                       @Value("${llm.base-url:https://api.deepseek.com}") String baseUrl,
                       @Value("${llm.model:deepseek-chat}") String model,
@@ -40,6 +40,7 @@ public class LlmService {
                       @Value("${llm.temperature:0.3}") double temperature) {
         this.objectMapper = objectMapper;
         this.httpClient = okHttpClient;
+        this.asyncExecutor = asyncExecutor;
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this.model = model;
@@ -56,7 +57,7 @@ public class LlmService {
      * @param onDone       LLM 流结束后回调，由 ChatService 发送 done 事件和 sources
      */
     public void chatStream(String systemPrompt, String userMessage, SseEmitter emitter, Runnable onDone) {
-        executor.execute(() -> {
+        asyncExecutor.execute(() -> {
             try {
                 ObjectNode body = objectMapper.createObjectNode();
                 body.put("model", model);

@@ -1,5 +1,6 @@
 package com.weather.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.dto.ChatRequest;
 import com.weather.dto.ChatResponse;
 import com.weather.dto.SearchResult;
@@ -7,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.concurrent.Executor;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -29,13 +32,19 @@ public class ChatService {
     private final EmbeddingService embeddingService;
     private final RetrieverService retrieverService;
     private final LlmService llmService;
+    private final Executor asyncExecutor;
+    private final ObjectMapper objectMapper;
 
     public ChatService(EmbeddingService embeddingService,
                        RetrieverService retrieverService,
-                       LlmService llmService) {
+                       LlmService llmService,
+                       Executor asyncExecutor,
+                       ObjectMapper objectMapper) {
         this.embeddingService = embeddingService;
         this.retrieverService = retrieverService;
         this.llmService = llmService;
+        this.asyncExecutor = asyncExecutor;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -69,7 +78,7 @@ public class ChatService {
 
         SseEmitter emitter = new SseEmitter(120000L);
 
-        new Thread(() -> {
+        asyncExecutor.execute(() -> {
             try {
                 String systemPrompt;
                 List<ChatResponse.SourceInfo> sources = new ArrayList<>();
@@ -111,16 +120,8 @@ public class ChatService {
                 llmService.chatStream(finalSystemPrompt, req.getQuestion(), emitter, () -> {
                     try {
                         // LLM 流结束，发送 done 事件（含引用来源）
-                        StringBuilder srcJson = new StringBuilder("[");
-                        for (int i = 0; i < finalSources.size(); i++) {
-                            if (i > 0) srcJson.append(",");
-                            ChatResponse.SourceInfo s = finalSources.get(i);
-                            srcJson.append(String.format(
-                                    "{\"city\":\"%s\",\"date\":\"%s\",\"section\":\"%s\"}",
-                                    s.getCity(), s.getDate(), s.getSection()));
-                        }
-                        srcJson.append("]");
-                        emitter.send(SseEmitter.event().name("done").data(srcJson.toString()));
+                        String sourcesJson = objectMapper.writeValueAsString(finalSources);
+                        emitter.send(SseEmitter.event().name("done").data(sourcesJson));
                         emitter.complete();
                     } catch (IOException e) {
                         emitter.completeWithError(e);
@@ -139,7 +140,7 @@ public class ChatService {
                     emitter.completeWithError(e);
                 }
             }
-        }).start();
+        });
 
         return emitter;
     }
