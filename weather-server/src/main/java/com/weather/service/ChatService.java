@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.dto.ChatRequest;
 import com.weather.dto.ChatResponse;
 import com.weather.dto.SearchResult;
+import com.weather.mapper.CityListMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -11,7 +12,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -36,17 +40,21 @@ public class ChatService {
     private final LlmService llmService;
     private final Executor asyncExecutor;
     private final ObjectMapper objectMapper;
+    private final CityListMapper cityListMapper;
+    private volatile List<String> knownCities;
 
     public ChatService(EmbeddingService embeddingService,
                        RetrieverService retrieverService,
                        LlmService llmService,
                        Executor asyncExecutor,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper,
+                       CityListMapper cityListMapper) {
         this.embeddingService = embeddingService;
         this.retrieverService = retrieverService;
         this.llmService = llmService;
         this.asyncExecutor = asyncExecutor;
         this.objectMapper = objectMapper;
+        this.cityListMapper = cityListMapper;
     }
 
     /**
@@ -256,21 +264,25 @@ public class ChatService {
         }
     }
 
+    private List<String> getKnownCities() {
+        if (knownCities == null) {
+            synchronized (this) {
+                if (knownCities == null) {
+                    knownCities = cityListMapper.selectList(null).stream()
+                            .map(c -> c.getCityName())
+                            .collect(Collectors.toList());
+                    log.info("已加载 {} 个城市名", knownCities.size());
+                }
+            }
+        }
+        return knownCities;
+    }
+
     /**
-     * 从问题文本中提取城市名（简单正则匹配）
+     * 从问题文本中提取城市名
      */
     private String extractCity(String question) {
-        // 常见城市名列表（从 city_list 扩展）
-        String[] knownCities = {
-                "北京", "上海", "广州", "深圳", "成都", "杭州", "武汉", "西安", "南京", "重庆",
-                "天津", "苏州", "长沙", "郑州", "济南", "青岛", "大连", "厦门", "福州", "昆明",
-                "合肥", "哈尔滨", "沈阳", "长春", "石家庄", "太原", "南昌", "贵阳", "南宁", "海口",
-                "兰州", "乌鲁木齐", "呼和浩特", "拉萨", "银川", "西宁", "景德镇",
-                "上饶", "九江", "赣州", "嘉兴", "温州", "宁波", "绍兴", "佛山", "东莞", "珠海",
-                "洛阳", "南阳", "邯郸", "保定", "中山", "泉州", "漳州", "桂林", "柳州"
-        };
-
-        for (String c : knownCities) {
+        for (String c : getKnownCities()) {
             if (question.contains(c)) {
                 return c;
             }
