@@ -1,8 +1,8 @@
 package com.weather.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.dto.ChatRequest;
 import com.weather.dto.ChatResponse;
-import com.weather.dto.Result;
 import com.weather.service.ChatService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -12,6 +12,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ChatController {
 
     private final ChatService chatService;
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     public ChatController(ChatService chatService) {
         this.chatService = chatService;
@@ -28,18 +30,9 @@ public class ChatController {
             SseEmitter emitter = new SseEmitter();
             try {
                 emitter.send(SseEmitter.event().name("delta").data(resp.getContent()));
-                StringBuilder srcJson = new StringBuilder("[");
-                if (resp.getSources() != null) {
-                    for (int i = 0; i < resp.getSources().size(); i++) {
-                        if (i > 0) srcJson.append(",");
-                        ChatResponse.SourceInfo s = resp.getSources().get(i);
-                        srcJson.append(String.format(
-                                "{\"city\":\"%s\",\"date\":\"%s\",\"section\":\"%s\"}",
-                                s.getCity(), s.getDate(), s.getSection()));
-                    }
-                }
-                srcJson.append("]");
-                emitter.send(SseEmitter.event().name("done").data(srcJson.toString()));
+                String sourcesJson = resp.getSources() != null ?
+                        JSON.writeValueAsString(resp.getSources()) : "[]";
+                emitter.send(SseEmitter.event().name("done").data(sourcesJson));
                 emitter.complete();
             } catch (Exception e) {
                 emitter.completeWithError(e);
