@@ -7,6 +7,9 @@ import com.weather.service.ChatService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
 @RestController
 @RequestMapping("/api")
 public class ChatController {
@@ -23,6 +26,18 @@ public class ChatController {
     public SseEmitter ask(@RequestBody ChatRequest req) {
         if (req.getQuestion() == null || req.getQuestion().isEmpty()) {
             throw new IllegalArgumentException("问题不能为空");
+        }
+        if (req.getDateRange() != null) {
+            try {
+                if (req.getDateRange().getStart() != null) {
+                    LocalDate.parse(req.getDateRange().getStart());
+                }
+                if (req.getDateRange().getEnd() != null) {
+                    LocalDate.parse(req.getDateRange().getEnd());
+                }
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("日期格式错误，应为 yyyy-MM-dd");
+            }
         }
         if (!req.isStream()) {
             // 非流式走 SseEmitter 不太合适，但这里保持统一

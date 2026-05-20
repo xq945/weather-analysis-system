@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.concurrent.Executor;
 
 import java.io.IOException;
@@ -59,10 +61,10 @@ public class ChatService {
 
         if (req.getDateRange() != null) {
             if (req.getDateRange().getStart() != null) {
-                dateFrom = LocalDate.parse(req.getDateRange().getStart());
+                dateFrom = parseDate(req.getDateRange().getStart(), "start");
             }
             if (req.getDateRange().getEnd() != null) {
-                dateTo = LocalDate.parse(req.getDateRange().getEnd());
+                dateTo = parseDate(req.getDateRange().getEnd(), "end");
             }
         }
         if (dateFrom == null) dateFrom = LocalDate.now().minusDays(7);
@@ -156,10 +158,10 @@ public class ChatService {
 
             if (req.getDateRange() != null) {
                 if (req.getDateRange().getStart() != null) {
-                    dateFrom = LocalDate.parse(req.getDateRange().getStart());
+                    dateFrom = parseDate(req.getDateRange().getStart(), "start");
                 }
                 if (req.getDateRange().getEnd() != null) {
-                    dateTo = LocalDate.parse(req.getDateRange().getEnd());
+                    dateTo = parseDate(req.getDateRange().getEnd(), "end");
                 }
             }
             if (dateFrom == null) dateFrom = LocalDate.now().minusDays(7);
@@ -244,6 +246,14 @@ public class ChatService {
         }
         sb.append("\n请给出简明准确的回答，并在末尾列出引用的报告日期。");
         return sb.toString();
+    }
+
+    private LocalDate parseDate(String dateStr, String fieldName) {
+        try {
+            return LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("日期格式错误 (" + fieldName + "): " + dateStr + "，应为 yyyy-MM-dd");
+        }
     }
 
     /**
