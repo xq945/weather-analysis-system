@@ -6,6 +6,7 @@ import com.weather.entity.FollowedCity;
 import com.weather.entity.User;
 import com.weather.mapper.FollowedCityMapper;
 import com.weather.mapper.UserMapper;
+import com.weather.util.AdminUtils;
 import com.weather.util.QWeatherApiClient;
 import org.springframework.stereotype.Service;
 
@@ -20,13 +21,16 @@ public class CityService {
     private final FollowedCityMapper followedCityMapper;
     private final UserMapper userMapper;
     private final QWeatherApiClient qWeatherApiClient;
+    private final AdminUtils adminUtils;
 
     public CityService(FollowedCityMapper followedCityMapper,
                        UserMapper userMapper,
-                       QWeatherApiClient qWeatherApiClient) {
+                       QWeatherApiClient qWeatherApiClient,
+                       AdminUtils adminUtils) {
         this.followedCityMapper = followedCityMapper;
         this.userMapper = userMapper;
         this.qWeatherApiClient = qWeatherApiClient;
+        this.adminUtils = adminUtils;
     }
 
     public Map<String, Object> addCity(Long userId, String city) {
@@ -65,7 +69,7 @@ public class CityService {
     }
 
     public void removeCity(Long userId, Integer cityId) {
-        checkAdmin(userId);
+        adminUtils.checkAdmin(userId);
         LambdaQueryWrapper<FollowedCity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FollowedCity::getId, cityId)
                .eq(FollowedCity::getUserId, userId);
@@ -84,7 +88,7 @@ public class CityService {
     }
 
     public List<Map<String, Object>> listAllFollowedCities(Long adminUserId) {
-        checkAdmin(adminUserId);
+        adminUtils.checkAdmin(adminUserId);
 
         List<FollowedCity> all = followedCityMapper.selectList(null);
 
@@ -107,10 +111,4 @@ public class CityService {
         }).collect(Collectors.toList());
     }
 
-    private void checkAdmin(Long userId) {
-        User user = userMapper.selectById(userId);
-        if (user == null || user.getPermission() == null || user.getPermission() != 2) {
-            throw new IllegalArgumentException("无权限访问");
-        }
-    }
 }

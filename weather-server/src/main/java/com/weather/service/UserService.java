@@ -3,6 +3,7 @@ package com.weather.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.weather.entity.User;
 import com.weather.mapper.UserMapper;
+import com.weather.util.AdminUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,20 +12,15 @@ import java.util.List;
 public class UserService {
 
     private final UserMapper userMapper;
+    private final AdminUtils adminUtils;
 
-    public UserService(UserMapper userMapper) {
+    public UserService(UserMapper userMapper, AdminUtils adminUtils) {
         this.userMapper = userMapper;
-    }
-
-    private void checkAdmin(Long userId) {
-        User admin = userMapper.selectById(userId);
-        if (admin == null || admin.getPermission() == null || admin.getPermission() != 2) {
-            throw new IllegalArgumentException("无权限访问");
-        }
+        this.adminUtils = adminUtils;
     }
 
     public List<User> listUsers(Long adminUserId) {
-        checkAdmin(adminUserId);
+        adminUtils.checkAdmin(adminUserId);
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByAsc(User::getId);
         List<User> users = userMapper.selectList(wrapper);
@@ -33,7 +29,7 @@ public class UserService {
     }
 
     public User updateStatus(Long adminUserId, Integer userId, Integer status) {
-        checkAdmin(adminUserId);
+        adminUtils.checkAdmin(adminUserId);
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new IllegalArgumentException("用户不存在");
@@ -45,7 +41,7 @@ public class UserService {
     }
 
     public User updatePermission(Long adminUserId, Integer userId, Integer permission) {
-        checkAdmin(adminUserId);
+        adminUtils.checkAdmin(adminUserId);
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new IllegalArgumentException("用户不存在");
