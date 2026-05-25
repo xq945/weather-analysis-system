@@ -12,12 +12,14 @@ import com.weather.util.QWeatherApiClient;
 import com.weather.util.WeatherTextUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,19 +33,22 @@ public class WeatherService {
     private final FollowedCityMapper followedCityMapper;
     private final EmbeddingService embeddingService;
     private final RetrieverService retrieverService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public WeatherService(QWeatherApiClient apiClient,
                           WeatherDataMapper weatherDataMapper,
                           WeatherForecastMapper forecastMapper,
                           FollowedCityMapper followedCityMapper,
                           EmbeddingService embeddingService,
-                          RetrieverService retrieverService) {
+                          RetrieverService retrieverService,
+                          RedisTemplate<String, Object> redisTemplate) {
         this.apiClient = apiClient;
         this.weatherDataMapper = weatherDataMapper;
         this.forecastMapper = forecastMapper;
         this.followedCityMapper = followedCityMapper;
         this.embeddingService = embeddingService;
         this.retrieverService = retrieverService;
+        this.redisTemplate = redisTemplate;
     }
 
     public WeatherData fetchNowForCity(String city) {
@@ -175,31 +180,67 @@ public class WeatherService {
     }
 
     public WeatherData getLatestNow(String city) {
+        String key = "weather:now:" + city;
+        WeatherData cached = (WeatherData) redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
         LambdaQueryWrapper<WeatherData> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WeatherData::getCity, city)
                .orderByDesc(WeatherData::getObsTime)
                .last("LIMIT 1");
-        return weatherDataMapper.selectOne(wrapper);
+        WeatherData data = weatherDataMapper.selectOne(wrapper);
+        if (data != null) {
+            redisTemplate.opsForValue().set(key, data, 15, TimeUnit.MINUTES);
+        }
+        return data;
     }
 
     public List<WeatherForecast> getForecast(String city) {
+        String key = "weather:forecast:" + city;
+        @SuppressWarnings("unchecked")
+        List<WeatherForecast> cached = (List<WeatherForecast>) redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
         LambdaQueryWrapper<WeatherForecast> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WeatherForecast::getCity, city)
                .ge(WeatherForecast::getForecastDate, LocalDate.now())
                .orderByAsc(WeatherForecast::getForecastDate);
-        return forecastMapper.selectList(wrapper);
+        List<WeatherForecast> data = forecastMapper.selectList(wrapper);
+        if (data != null && !data.isEmpty()) {
+            redisTemplate.opsForValue().set(key, data, 6, TimeUnit.HOURS);
+        }
+        return data;
     }
 
     public List<WeatherData> getHistory(String city, int days) {
+        String key = "weather:history:" + city + ":" + days;
+        @SuppressWarnings("unchecked")
+        List<WeatherData> cached = (List<WeatherData>) redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         LambdaQueryWrapper<WeatherData> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WeatherData::getCity, city)
                .ge(WeatherData::getObsTime, since)
                .orderByAsc(WeatherData::getObsTime);
-        return weatherDataMapper.selectList(wrapper);
+        List<WeatherData> data = weatherDataMapper.selectList(wrapper);
+        if (data != null && !data.isEmpty()) {
+            redisTemplate.opsForValue().set(key, data, 15, TimeUnit.MINUTES);
+        }
+        return data;
     }
 
     public List<Map<String, Object>> getOverview(Long userId) {
+        String key = "weather:overview:" + userId;
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> cached = (List<Map<String, Object>>) redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
+
         Set<String> cities = getAllFollowedCities();
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -216,10 +257,18 @@ public class WeatherService {
             }
             result.add(item);
         }
+
+        redisTemplate.opsForValue().set(key, result, 10, TimeUnit.MINUTES);
         return result;
     }
 
     public Map<String, Object> getStatistics(String city, int days) {
+        String key = "weather:statistics:" + city + ":" + days;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cached = (Map<String, Object>) redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
+        }
         List<WeatherData> history = getHistory(city, days);
         List<WeatherForecast> forecast = getForecast(city);
 
@@ -276,6 +325,8 @@ public class WeatherService {
         }
         result.put("dailySummary", dailySummary);
         result.put("forecast", forecast);
+
+        redisTemplate.opsForValue().set(key, result, 15, TimeUnit.MINUTES);
         return result;
     }
 
