@@ -35,6 +35,7 @@
 </template>
 
 <script setup lang="ts">
+// 侧边导航栏：根据当前路由高亮菜单，管理员可见"用户管理"
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'

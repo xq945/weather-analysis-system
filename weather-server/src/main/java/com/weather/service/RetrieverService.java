@@ -18,6 +18,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Qdrant 向量检索服务：向量搜索、写入 Chunk、按 report_id 删除
+ */
 @Service
 public class RetrieverService {
 

@@ -32,6 +32,7 @@
 </template>
 
 <script setup lang="ts">
+// 主布局：侧边栏 + 顶栏（含城市筛选）+ 内容区
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'

@@ -5,6 +5,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * 注册请求参数
+ */
 @Data
 public class RegisterRequest {
     @NotBlank(message = "用户名不能为空")
@@ -16,5 +19,5 @@ public class RegisterRequest {
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$", message = "密码需包含大小写字母和数字")
     private String password;
 
-    private String nickname;
+    private String nickname;    // 昵称（可选，默认用用户名）
 }

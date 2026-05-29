@@ -1,3 +1,4 @@
+// 分析报告 API：生成、列表、详情、删除、向量同步
 import api from './index'
 
 export function generateReport(city: string, date: string, reportType: number = 1) {

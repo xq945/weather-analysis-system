@@ -6,6 +6,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * JWT 拦截器：从请求头提取 Token，解析 userId 存入 request attribute
+ */
 @Component
 public class JwtInterceptor implements HandlerInterceptor {
 
@@ -15,8 +18,16 @@ public class JwtInterceptor implements HandlerInterceptor {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * 请求前置拦截
+     *
+     * 从 Authorization 头提取 Bearer Token，解析出 userId 并设置到 request 属性中，
+     * 后续 Controller 可通过 request.getAttribute("userId") 获取。
+     * OPTIONS 预检请求直接放行。
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // OPTIONS 预检请求无需鉴权
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }

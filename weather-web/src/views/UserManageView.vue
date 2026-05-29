@@ -54,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+// 用户管理页面（管理员）：用户列表、启用/禁用、权限升降
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUsers, updateUserStatus, updateUserPermission } from '../api/user'

@@ -3,6 +3,9 @@ package com.weather.util;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 天气文本英译中工具
+ */
 public final class WeatherTextUtil {
 
     private static final Map<String, String> EN_TO_ZH = new HashMap<>();

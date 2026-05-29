@@ -25,11 +25,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * RAG 智能问答服务
+ * 流程：向量化用户问题 → Qdrant 检索 → 构建 Prompt → 调用 DeepSeek → SSE 返回
+ * 检索不到结果时降级直接调用大模型
+ */
 @Service
 public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
+    /** 构建默认系统提示词（未检索到数据时使用） */
     private String defaultSystemPrompt() {
         return "当前系统日期：" + LocalDate.now() + "。请根据此日期理解\"今天\"\"昨天\"\"明天\"等相对日期概念。\n"
              + "你是天气数据分析助手。请根据用户的问题给出简明准确的回答。";
@@ -256,6 +262,7 @@ public class ChatService {
         return sb.toString();
     }
 
+    /** 解析日期字符串，解析失败时抛出含字段名的明确错误 */
     private LocalDate parseDate(String dateStr, String fieldName) {
         try {
             return LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
@@ -264,6 +271,7 @@ public class ChatService {
         }
     }
 
+    /** 获取已知城市列表（首次加载后缓存，双重检查锁） */
     private List<String> getKnownCities() {
         if (knownCities == null) {
             synchronized (this) {
@@ -280,6 +288,9 @@ public class ChatService {
 
     /**
      * 从问题文本中提取城市名
+     *
+     * 遍历已知城市列表，匹配问题中出现的第一个城市名。
+     * 匹配逻辑是简单的字符串包含判断，所以用户可以说"北京今天天气如何"而不需要指定城市参数。
      */
     private String extractCity(String question) {
         for (String c : getKnownCities()) {

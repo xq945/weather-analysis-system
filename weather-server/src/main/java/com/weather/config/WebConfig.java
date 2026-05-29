@@ -11,6 +11,9 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Web 配置：CORS、编码过滤器、密码编码器、JWT 拦截器注册
+ */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 

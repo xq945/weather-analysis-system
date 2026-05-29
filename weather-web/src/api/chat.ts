@@ -1,3 +1,4 @@
+// AI 问答 API：SSE 流式（EventSource）和非流式接口
 import { ElMessage } from 'element-plus'
 
 export interface ChatRequest {
@@ -13,7 +14,7 @@ export interface SourceInfo {
   section: string
 }
 
-// SSE 流式问答
+/** SSE 流式问答：逐字解析 delta 事件，结束时解析 done 事件获取引用来源 */
 export async function askStream(
   params: ChatRequest,
   onDelta: (text: string) => void,
@@ -77,7 +78,7 @@ export async function askStream(
   }
 }
 
-// 非流式问答
+/** 非流式问答：后端仍走 SSE 协议，前端收齐所有 delta 后组合成完整文本 */
 export async function askSync(params: ChatRequest): Promise<{ content: string; sources: SourceInfo[] }> {
   const token = localStorage.getItem('token')
   const response = await fetch('/api/chat/ask', {
@@ -89,7 +90,6 @@ export async function askSync(params: ChatRequest): Promise<{ content: string; s
     body: JSON.stringify({ ...params, stream: false })
   })
 
-  // Parse SSE-style response
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
   let buffer = ''

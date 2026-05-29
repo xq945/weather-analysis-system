@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+// 城市管理页面：管理员看所有用户的关注，普通用户只看自己的
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '../stores/auth'

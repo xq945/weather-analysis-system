@@ -98,6 +98,7 @@
 </template>
 
 <script setup lang="ts">
+// 登录/注册页面：含表单校验、记住密码、密码强度校验
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -141,6 +142,7 @@ const regRules = {
 }
 const regFormRef = ref()
 
+/** 登录按钮点击处理 */
 async function handleLogin() {
   const valid = await loginFormRef.value.validate().catch(() => false)
   if (!valid) return
@@ -161,6 +163,7 @@ async function handleLogin() {
   }
 }
 
+/** 注册按钮点击处理 */
 async function handleRegister() {
   const valid = await regFormRef.value.validate().catch(() => false)
   if (!valid) return
@@ -176,6 +179,7 @@ async function handleRegister() {
   }
 }
 
+/** 忘记密码提示 */
 function handleForgot() {
   ElMessage.info('请联系管理员重置密码')
 }

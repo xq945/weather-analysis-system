@@ -6,6 +6,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
 
+/**
+ * 异步线程池配置（用于 AI 流式问答等异步任务）
+ */
 @Configuration
 public class ThreadPoolConfig {
 

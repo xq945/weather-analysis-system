@@ -1,3 +1,4 @@
+// 应用入口：挂载 Vue 3 + Pinia + Element Plus + Router
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'

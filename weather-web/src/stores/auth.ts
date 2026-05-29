@@ -1,3 +1,4 @@
+// 认证状态管理：登录、注册、登出、Token 持久化
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { login as loginApi, register as registerApi, getMe } from '../api/auth'
@@ -7,6 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const nickname = ref(localStorage.getItem('nickname') || '')
   const permission = ref(Number(localStorage.getItem('permission') || 1))
 
+  /** 登录：保存 Token/昵称/权限到 Pinia 和 localStorage */
   async function login(username: string, password: string) {
     const res = await loginApi(username, password)
     const data = res.data.data
@@ -18,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('permission', String(data.permission ?? 1))
   }
 
+  /** 注册并自动登录 */
   async function register(username: string, password: string, nick: string) {
     const res = await registerApi(username, password, nick)
     const data = res.data.data
@@ -29,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('permission', String(data.permission ?? 1))
   }
 
+  /** 登出：清除所有登录态 */
   function logout() {
     token.value = ''
     nickname.value = ''

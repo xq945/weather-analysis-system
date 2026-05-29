@@ -7,6 +7,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * 全局异常处理：参数校验异常 → 400，业务异常 → 400，其他 → 500（不暴露内部信息）
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

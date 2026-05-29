@@ -31,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+// 首页仪表盘：展示关注城市的实时天气卡片，支持筛选模式切换
 import { ref, computed, onMounted, watch } from 'vue'
 import { useCitiesStore } from '../stores/cities'
 import { getOverview } from '../api/weather'
@@ -38,6 +39,7 @@ import { getOverview } from '../api/weather'
 const citiesStore = useCitiesStore()
 const allCities = ref<any[]>([])
 
+// 根据当前筛选模式（我的关注/所有城市）过滤概览数据
 const cities = computed(() => {
   if (citiesStore.filterMode === 'mine') {
     const myNames = new Set(citiesStore.myList.map((c: any) => c.city))
@@ -46,6 +48,7 @@ const cities = computed(() => {
   return allCities.value
 })
 
+/** 加载天气概览数据 */
 async function loadOverview() {
   if (citiesStore.allList.length === 0 && citiesStore.myList.length === 0) {
     await citiesStore.load()

@@ -19,6 +19,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * 天气分析报告服务：生成 Markdown 报告、向量化同步到 Qdrant
+ */
 @Service
 public class ReportService {
 
@@ -43,12 +46,20 @@ public class ReportService {
     }
 
     /**
-     * 生成单份报告并同步到 Qdrant
+     * 生成天气分析报告并同步到 Qdrant
+     *
+     * 流程：查天气数据 → 查预报 → 生成 Markdown → 写入 MySQL → 向量化 → 写入 Qdrant
+     * 向量同步失败时报告仍保留在 MySQL 中，qdrant_synced 置为 0，由定时任务对账修复。
+     *
+     * @param city       城市名
+     * @param date       报告日期
+     * @param reportType 报告类型（1=日报，2=周报，3=深度分析）
+     * @return 生成的报告实体
      */
     public WeatherReport generateReport(String city, LocalDate date, Integer reportType) {
         log.info("开始生成报告: city={}, date={}, type={}", city, date, reportType);
 
-        // 1. 查询天气数据
+        // 查询当天天气数据，按观测时间升序
         List<WeatherData> dataList = weatherDataMapper.selectList(
                 new LambdaQueryWrapper<WeatherData>()
                         .eq(WeatherData::getCity, city)
@@ -58,21 +69,20 @@ public class ReportService {
                         .orderByAsc(WeatherData::getObsTime)
         );
 
-        // 2. 查询预报数据
+        // 查询当天预报数据
         WeatherForecast forecast = weatherForecastMapper.selectOne(
                 new LambdaQueryWrapper<WeatherForecast>()
                         .eq(WeatherForecast::getCity, city)
                         .eq(WeatherForecast::getForecastDate, date)
         );
 
-        // 3. 数据不足时仍生成基础报告
-        // 4. 生成 Markdown 报告
+        // 生成 Markdown 格式报告
         String content = buildReportContent(city, date, dataList, forecast);
 
-        // 5. 幂等处理：先删旧报告
+        // 先删除同城市同日期的旧报告（幂等）
         deleteByCityAndDate(city, date);
 
-        // 6. 写入 MySQL
+        // 写入 MySQL
         String reportId = "rpt_" + date.format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "_" + city + "_001";
         WeatherReport report = new WeatherReport();
         report.setReportId(reportId);
@@ -85,8 +95,9 @@ public class ReportService {
         report.setQdrantSynced(0);
         weatherReportMapper.insert(report);
 
-        // 7. 向量化并写入 Qdrant
+        // 向量化并写入 Qdrant
         try {
+            // 按二级标题切分报告
             List<ChunkInfo> chunks = splitIntoChunks(report);
             List<String> chunkTexts = chunks.stream().map(ChunkInfo::content).toList();
             List<float[]> vectors = embeddingService.embedBatch(chunkTexts);
@@ -97,6 +108,7 @@ public class ReportService {
             String weatherText = forecast != null && forecast.getWeatherTextDay() != null
                     ? forecast.getWeatherTextDay() : "晴";
 
+            // 每个 chunk 使用相同的天气摘要数据
             List<Float> tempMaxes = new ArrayList<>();
             List<Float> tempMins = new ArrayList<>();
             for (int i = 0; i < chunks.size(); i++) {
@@ -104,6 +116,7 @@ public class ReportService {
                 tempMins.add(tempMin);
             }
 
+            // 先清理旧向量再写入
             retrieverService.deleteByReportId(reportId);
             retrieverService.upsertChunks(reportId, chunkTexts, vectors, city,
                     date.atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant().toString(),
@@ -115,14 +128,14 @@ public class ReportService {
             log.info("报告生成完成: reportId={}, chunks={}", reportId, chunks.size());
         } catch (Exception e) {
             log.error("向量同步失败: reportId={}, error={}", reportId, e.getMessage());
-            // 报告已保存，qdrant_synced 保持 0，由对账任务修复
+            // 报告已保存到 MySQL，qdrant_synced=0，由对账任务重试同步
         }
 
         return report;
     }
 
     /**
-     * 按城市和日期删除
+     * 按城市和日期删除报告（同时清理 Qdrant 向量）
      */
     public void deleteByCityAndDate(String city, LocalDate date) {
         LambdaQueryWrapper<WeatherReport> wrapper = new LambdaQueryWrapper<>();
@@ -136,7 +149,9 @@ public class ReportService {
     }
 
     /**
-     * 按 reportId 删除
+     * 按业务 ID 删除报告
+     *
+     * @param reportId 报告业务 ID
      */
     public void deleteByReportId(String reportId) {
         LambdaQueryWrapper<WeatherReport> wrapper = new LambdaQueryWrapper<>();
@@ -149,7 +164,11 @@ public class ReportService {
     }
 
     /**
-     * 重新同步向量库
+     * 重新同步指定报告到 Qdrant 向量库
+     *
+     * 用于修复 qdrant_synced=0 的报告，重新进行向量化并写入。
+     *
+     * @param id 报告主键 ID
      */
     public void resyncToQdrant(Long id) {
         WeatherReport report = weatherReportMapper.selectById(id);
@@ -178,6 +197,10 @@ public class ReportService {
 
     /**
      * 查询报告列表
+     *
+     * @param city 可选城市过滤
+     * @param date 可选日期过滤
+     * @return 报告列表，按创建时间倒序
      */
     public List<WeatherReport> listReports(String city, LocalDate date) {
         LambdaQueryWrapper<WeatherReport> wrapper = new LambdaQueryWrapper<>();
@@ -191,18 +214,14 @@ public class ReportService {
         return weatherReportMapper.selectList(wrapper);
     }
 
-    /**
-     * 根据 reportId 查询
-     */
+    /** 按业务 ID 查询报告 */
     public WeatherReport getByReportId(String reportId) {
         LambdaQueryWrapper<WeatherReport> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WeatherReport::getReportId, reportId);
         return weatherReportMapper.selectOne(wrapper);
     }
 
-    /**
-     * 未同步报告数
-     */
+    /** 统计未同步向量的报告数量（供定时对账任务使用） */
     public int countUnsyncedReports() {
         LambdaQueryWrapper<WeatherReport> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WeatherReport::getQdrantSynced, 0);
@@ -211,14 +230,17 @@ public class ReportService {
     }
 
     /**
-     * 生成 Markdown 报告文本
+     * 生成 Markdown 格式报告文本
+     *
+     * 包含四个章节：概况、趋势分析、异常提示、出行建议。
+     * 数据不足时生成基础版本，不抛异常。
      */
     private String buildReportContent(String city, LocalDate date,
                                        List<WeatherData> dataList, WeatherForecast forecast) {
         StringBuilder sb = new StringBuilder();
         sb.append("# ").append(city).append(" 天气分析报告 (").append(date).append(")\n\n");
 
-        // 概况
+        // 概况：均值、极值、主导天气
         sb.append("## 一、概况\n");
         if (!dataList.isEmpty()) {
             double avgTemp = dataList.stream().mapToDouble(WeatherData::getTemp).average().orElse(0);
@@ -237,7 +259,7 @@ public class ReportService {
             sb.append("暂无数据。\n");
         }
 
-        // 趋势分析
+        // 趋势分析：与昨日对比、日内范围、平均风力
         sb.append("\n## 二、趋势分析\n");
         if (dataList.size() >= 2) {
             WeatherData first = dataList.get(0);
@@ -245,21 +267,16 @@ public class ReportService {
             double tempChange = last.getTemp() - first.getTemp();
             String dir = tempChange > 0 ? "上升" : "下降";
             sb.append(String.format("与昨日同期对比，温度%s %.1f℃，", dir, Math.abs(tempChange)));
-
-            // 最高最低趋势
-            double firstHigh = dataList.get(0).getTemp();
-            double lastHigh = dataList.get(dataList.size() - 1).getTemp();
-            sb.append(String.format("日内温度范围 %.1f℃ ~ %.1f℃。", Math.min(firstHigh, lastHigh),
-                    Math.max(firstHigh, lastHigh)));
-
-            // 风力湿度
+            sb.append(String.format("日内温度范围 %.1f℃ ~ %.1f℃。",
+                    Math.min(first.getTemp(), last.getTemp()),
+                    Math.max(first.getTemp(), last.getTemp())));
             double avgWind = dataList.stream().mapToDouble(WeatherData::getWindSpeed).average().orElse(0);
             sb.append(String.format("平均风力 %.1f 级。", avgWind));
         } else {
             sb.append("数据不足，无法进行趋势分析。\n");
         }
 
-        // 异常提示
+        // 异常提示：昼夜温差 >15℃、风力 >10 级
         sb.append("\n## 三、异常提示\n");
         boolean hasAbnormal = false;
         if (forecast != null && forecast.getTempMax() != null && forecast.getTempMin() != null) {
@@ -279,7 +296,7 @@ public class ReportService {
             sb.append("当前无明显异常天气。");
         }
 
-        // 出行建议
+        // 出行建议：根据天气状况生成
         sb.append("\n\n## 四、出行建议\n");
         if (forecast != null) {
             String dayWeather = forecast.getWeatherTextDay();
@@ -310,7 +327,13 @@ public class ReportService {
     }
 
     /**
-     * 按二级标题切分报告
+     * 按二级标题切分报告文本
+     *
+     * 将 Markdown 报告按 "## 一、概况" 等标题切分为多个 Chunk，
+     * 每个 Chunk 可单独用于向量检索。
+     *
+     * @param report 完整报告
+     * @return Chunk 列表
      */
     public List<ChunkInfo> splitIntoChunks(WeatherReport report) {
         List<ChunkInfo> chunks = new ArrayList<>();
@@ -336,5 +359,6 @@ public class ReportService {
         return chunks;
     }
 
+    /** Chunk 信息：所属段落名 + 文本内容 */
     public record ChunkInfo(String section, String content) {}
 }

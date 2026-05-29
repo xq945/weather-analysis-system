@@ -98,6 +98,7 @@
 </template>
 
 <script setup lang="ts">
+// 数据分析页面：单城市统计和双城市对比，含 ECharts 图表
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { useCitiesStore } from '../stores/cities'

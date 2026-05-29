@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Embedding 向量化服务：调用阿里云百炼 DashScope text-embedding-v4
+ */
 @Service
 public class EmbeddingService {
 
@@ -44,6 +47,12 @@ public class EmbeddingService {
         this.batchSize = batchSize;
     }
 
+    /**
+     * 单条文本向量化
+     *
+     * @param text 输入文本
+     * @return float 数组，长度为 dimension（默认 1024）
+     */
     public float[] embed(String text) {
         List<float[]> results = embedBatch(Collections.singletonList(text));
         if (results.isEmpty()) {
@@ -52,6 +61,15 @@ public class EmbeddingService {
         return results.get(0);
     }
 
+    /**
+     * 批量文本向量化
+     *
+     * 按 batchSize 分批调用 API，避免单次请求体过大。
+     * 使用 DashScope 兼容接口（/v1/embeddings），格式兼容 OpenAI。
+     *
+     * @param texts 文本列表
+     * @return 向量列表，顺序与输入一致
+     */
     public List<float[]> embedBatch(List<String> texts) {
         if (texts == null || texts.isEmpty()) {
             return Collections.emptyList();
@@ -59,6 +77,7 @@ public class EmbeddingService {
 
         List<float[]> allVectors = new ArrayList<>();
 
+        // 分批处理，每批 batchSize 条
         for (int i = 0; i < texts.size(); i += batchSize) {
             int end = Math.min(i + batchSize, texts.size());
             List<String> batch = texts.subList(i, end);
@@ -80,6 +99,7 @@ public class EmbeddingService {
                 String url = baseUrl + "/v1/embeddings";
                 ResponseEntity<JsonNode> resp = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
 
+                // 解析返回的 embedding 数据
                 JsonNode root = resp.getBody();
                 if (root != null && root.has("data")) {
                     JsonNode data = root.get("data");
@@ -105,6 +125,7 @@ public class EmbeddingService {
         return allVectors;
     }
 
+    /** 获取向量维度 */
     public int getDimension() {
         return dimension;
     }

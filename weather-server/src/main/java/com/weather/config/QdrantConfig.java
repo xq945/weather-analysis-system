@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * Qdrant 向量数据库配置：启动时自动创建 Collection 和 Payload 索引
+ */
 @Configuration
 public class QdrantConfig {
 

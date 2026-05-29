@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.Set;
 
+/**
+ * 定时任务：每 30 分钟拉取实时天气，每天 08:00 拉取预报，09:00 生成日报
+ */
 @Component
 public class WeatherScheduler {
 
@@ -29,6 +32,7 @@ public class WeatherScheduler {
         this.reportService = reportService;
     }
 
+    /** 每 30 分钟拉取所有关注城市的实时天气 */
     @Scheduled(cron = "0 */30 * * * *")
     public void fetchCurrentWeather() {
         Set<String> cities = weatherService.getAllFollowedCities();
@@ -42,6 +46,7 @@ public class WeatherScheduler {
         }
     }
 
+    /** 每天 08:00 拉取所有关注城市的 7 天预报 */
     @Scheduled(cron = "0 0 8 * * *")
     public void fetchForecastDaily() {
         Set<String> cities = weatherService.getAllFollowedCities();
@@ -55,7 +60,7 @@ public class WeatherScheduler {
         }
     }
 
-    // 每日 09:00 生成昨日天气日报
+    /** 每天 09:00 生成昨日天气日报 */
     @Scheduled(cron = "0 0 9 * * *")
     public void generateDailyReports() {
         log.info("开始生成每日天气报告...");
@@ -79,7 +84,7 @@ public class WeatherScheduler {
         log.info("每日报告生成完成: 成功={}, 失败={}, 城市数={}", success, fail, cities.size());
     }
 
-    // 每 30 分钟对账未同步向量
+    /** 每 30 分钟检查未同步向量的报告数量，超标时告警 */
     @Scheduled(cron = "0 */30 * * * *")
     public void reconcileQdrantSync() {
         int unsynced = reportService.countUnsyncedReports();

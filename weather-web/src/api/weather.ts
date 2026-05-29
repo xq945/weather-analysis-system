@@ -1,3 +1,4 @@
+// 天气数据 API：概览、实时、预报、历史、统计、对比
 import api from './index'
 
 export function getOverview() {
@@ -5,11 +6,11 @@ export function getOverview() {
 }
 
 export function fetchWeather() {
-  return api.post('/api/weather/fetch')
+  return api.post('/api/weather/fetch')                   // 手动拉取全部城市
 }
 
 export function fetchCityWeather(city: string) {
-  return api.post('/api/weather/fetch-city', null, { params: { city } })
+  return api.post('/api/weather/fetch-city', null, { params: { city } })  // 手动拉取单城市
 }
 
 export function getWeatherNow(city: string) {

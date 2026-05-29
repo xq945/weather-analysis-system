@@ -88,6 +88,7 @@
 </template>
 
 <script setup lang="ts">
+// 天气数据页面：实时天气、7天预报、历史数据
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useCitiesStore } from '../stores/cities'

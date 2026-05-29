@@ -9,6 +9,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 分析报告接口：生成、查询、删除、向量同步
+ */
 @RestController
 @RequestMapping("/api")
 public class ReportController {
@@ -19,6 +22,14 @@ public class ReportController {
         this.reportService = reportService;
     }
 
+    /**
+     * 生成天气分析报告
+     *
+     * 自动查询天气数据，生成 Markdown 报告，并向量化同步到 Qdrant。
+     *
+     * @param body 包含 city（城市）、date（日期）、reportType（类型 1/2/3）
+     * @return 生成的报告实体
+     */
     @PostMapping("/admin/report/generate")
     public Result<?> generate(@RequestBody Map<String, Object> body) {
         String city = (String) body.get("city");
@@ -37,6 +48,13 @@ public class ReportController {
         return Result.ok(report);
     }
 
+    /**
+     * 查询报告列表
+     *
+     * @param city 可选，按城市过滤
+     * @param date 可选，按日期过滤（yyyy-MM-dd）
+     * @return 报告列表，按创建时间倒序
+     */
     @GetMapping("/report/list")
     public Result<List<WeatherReport>> list(@RequestParam(required = false) String city,
                                              @RequestParam(required = false) String date) {
@@ -47,6 +65,7 @@ public class ReportController {
         return Result.ok(reportService.listReports(city, localDate));
     }
 
+    /** 获取报告详情 */
     @GetMapping("/report/{reportId}")
     public Result<WeatherReport> detail(@PathVariable String reportId) {
         WeatherReport report = reportService.getByReportId(reportId);
@@ -56,12 +75,14 @@ public class ReportController {
         return Result.ok(report);
     }
 
+    /** 删除报告（同时删除 Qdrant 中的向量） */
     @DeleteMapping("/admin/report/{reportId}")
     public Result<?> delete(@PathVariable String reportId) {
         reportService.deleteByReportId(reportId);
         return Result.ok();
     }
 
+    /** 重新同步指定报告到向量库 */
     @PostMapping("/admin/report/sync/{id}")
     public Result<?> resync(@PathVariable Long id) {
         reportService.resyncToQdrant(id);

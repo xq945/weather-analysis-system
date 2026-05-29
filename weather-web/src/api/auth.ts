@@ -1,3 +1,4 @@
+// 认证 API：登录、注册、获取当前用户
 import api from './index'
 
 export function login(username: string, password: string) {

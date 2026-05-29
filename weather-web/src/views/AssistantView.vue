@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+// AI 天气助手页面：RAG 流式问答，实时展示 AI 回复和引用来源
 import { ref, nextTick } from 'vue'
 import { askStream, type SourceInfo } from '../api/chat'
 
@@ -76,10 +77,12 @@ const streaming = ref(false)
 const streamingContent = ref('')
 const messagesContainer = ref<HTMLElement>()
 
+/** 发送问题到 AI 助手，SSE 流式展示回答 */
 async function sendMessage() {
   const q = question.value.trim()
   if (!q || streaming.value) return
 
+  // 将用户问题加入对话列表，准备接收流式响应
   messages.value.push({ role: 'user', content: q })
   question.value = ''
   streaming.value = true
@@ -92,10 +95,12 @@ async function sendMessage() {
 
   await askStream(
     params,
+    // delta：逐字追加到当前流式内容
     (delta) => {
       streamingContent.value += delta
       nextTick(() => scrollToBottom())
     },
+    // done：流结束，将完整回答加入对话列表
     (sources) => {
       messages.value.push({
         role: 'assistant',
@@ -106,6 +111,7 @@ async function sendMessage() {
       streamingContent.value = ''
       nextTick(() => scrollToBottom())
     },
+    // error：中断处理，有部分内容则追加中断标记
     () => {
       if (streamingContent.value) {
         messages.value.push({

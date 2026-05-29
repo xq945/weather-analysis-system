@@ -22,6 +22,10 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * 天气数据服务：采集、缓存、统计分析、城市对比
+ * 对接和风天气 API，数据写入 MySQL 并通过 Redis 缓存加速
+ */
 @Service
 public class WeatherService {
 
@@ -51,6 +55,7 @@ public class WeatherService {
         this.redisTemplate = redisTemplate;
     }
 
+    /** 拉取指定城市的实时天气并写入 MySQL */
     public WeatherData fetchNowForCity(String city) {
         String cityId = apiClient.searchCity(city);
         JsonNode now = apiClient.getWeatherNow(cityId);
@@ -69,6 +74,7 @@ public class WeatherService {
         return data;
     }
 
+    /** 拉取指定城市 7 天预报并写入 MySQL，同时自动向量化到 Qdrant */
     public List<WeatherForecast> fetchForecastForCity(String city) {
         String cityId = apiClient.searchCity(city);
         JsonNode daily = apiClient.getWeather7d(cityId);
@@ -149,6 +155,7 @@ public class WeatherService {
         log.info("预报向量化完成: city={}, days={}", city, forecasts.size());
     }
 
+    /** 拉取用户关注的所有城市的实时+预报数据（手动刷新） */
     public Map<String, Object> fetchAllForUser(Long userId) {
         Set<String> cities = getAllFollowedCities();
 
@@ -179,6 +186,7 @@ public class WeatherService {
         return result;
     }
 
+    /** 获取指定城市最新实时天气（Redis 缓存 15 分钟） */
     public WeatherData getLatestNow(String city) {
         String key = "weather:now:" + city;
         WeatherData cached = (WeatherData) redisTemplate.opsForValue().get(key);
@@ -196,6 +204,7 @@ public class WeatherService {
         return data;
     }
 
+    /** 获取指定城市 7 天预报（Redis 缓存 6 小时） */
     public List<WeatherForecast> getForecast(String city) {
         String key = "weather:forecast:" + city;
         @SuppressWarnings("unchecked")
@@ -214,6 +223,7 @@ public class WeatherService {
         return data;
     }
 
+    /** 获取指定城市历史天气（Redis 缓存 15 分钟） */
     public List<WeatherData> getHistory(String city, int days) {
         String key = "weather:history:" + city + ":" + days;
         @SuppressWarnings("unchecked")
@@ -233,6 +243,7 @@ public class WeatherService {
         return data;
     }
 
+    /** 获取用户关注城市的最新天气概览（Redis 缓存 10 分钟） */
     public List<Map<String, Object>> getOverview(Long userId) {
         String key = "weather:overview:" + userId;
         @SuppressWarnings("unchecked")
@@ -262,6 +273,7 @@ public class WeatherService {
         return result;
     }
 
+    /** 获取指定城市的统计分析：平均/最高/最低温度、趋势、逐日汇总 */
     public Map<String, Object> getStatistics(String city, int days) {
         String key = "weather:statistics:" + city + ":" + days;
         @SuppressWarnings("unchecked")
@@ -305,6 +317,7 @@ public class WeatherService {
         }
         result.put("trend", trend);
 
+        // 逐日汇总：按日期分组，计算每天的温度范围
         Map<LocalDate, double[]> dailyMap = new LinkedHashMap<>();
         for (WeatherData w : history) {
             LocalDate d = w.getObsTime().toLocalDate();
@@ -330,6 +343,7 @@ public class WeatherService {
         return result;
     }
 
+    /** 两城市天气对比，含温度/湿度/风力差值分析 */
     public Map<String, Object> getCompare(String cityA, String cityB, int days) {
         Map<String, Object> statsA = getStatistics(cityA, days);
         Map<String, Object> statsB = getStatistics(cityB, days);
@@ -360,6 +374,7 @@ public class WeatherService {
         List<Map<String, Object>> trendA = (List<Map<String, Object>>) statsA.get("trend");
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> trendB = (List<Map<String, Object>>) statsB.get("trend");
+        // 按时间点逐项计算差值（温度/湿度/风速），取两城市趋势数据中较短的长度
         int size = Math.min(trendA.size(), trendB.size());
         for (int i = 0; i < size; i++) {
             Map<String, Object> d = new HashMap<>();
@@ -379,6 +394,7 @@ public class WeatherService {
         return result;
     }
 
+    /** 拉取单个城市的实时+预报（API 触发） */
     public Map<String, Object> fetchForCity(String city) {
         int nowCount = 0;
         int forecastCount = 0;
@@ -404,6 +420,7 @@ public class WeatherService {
         return result;
     }
 
+    /** 获取所有被关注的城市名（去重） */
     public Set<String> getAllFollowedCities() {
         List<FollowedCity> all = followedCityMapper.selectList(null);
         return all.stream().map(FollowedCity::getCity).collect(Collectors.toSet());

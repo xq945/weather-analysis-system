@@ -10,6 +10,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
+/**
+ * AI 智能问答接口（SSE 流式 + 非流式）
+ */
 @RestController
 @RequestMapping("/api")
 public class ChatController {
@@ -22,11 +25,21 @@ public class ChatController {
         this.chatService = chatService;
     }
 
+    /**
+     * AI 问答入口
+     *
+     * 流式模式下返回 SseEmitter，逐字推送 delta 事件；
+     * 非流式模式下后端仍走 SSE 协议，但前端收齐后一次性展示。
+     *
+     * @param req 包含问题、城市、时间范围、是否流式等参数
+     * @return SSE 流式响应
+     */
     @PostMapping("/chat/ask")
     public SseEmitter ask(@RequestBody ChatRequest req) {
         if (req.getQuestion() == null || req.getQuestion().isEmpty()) {
             throw new IllegalArgumentException("问题不能为空");
         }
+        // 校验日期格式（如果有传入）
         if (req.getDateRange() != null) {
             try {
                 if (req.getDateRange().getStart() != null) {
@@ -40,7 +53,7 @@ public class ChatController {
             }
         }
         if (!req.isStream()) {
-            // 非流式走 SseEmitter 不太合适，但这里保持统一
+            // 非流式：先获取完整回答，再封装成单个 delta 事件 + done 事件返回
             ChatResponse resp = chatService.answerSync(req);
             SseEmitter emitter = new SseEmitter();
             try {
@@ -54,6 +67,7 @@ public class ChatController {
             }
             return emitter;
         }
+        // 流式：交由 ChatService 异步处理，通过 SSE 逐字推送
         return chatService.answer(req);
     }
 }

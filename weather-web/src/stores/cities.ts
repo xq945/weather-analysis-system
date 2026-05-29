@@ -1,3 +1,4 @@
+// 城市状态管理：我的关注、全部城市、管理端全量、筛选模式持久化
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { getCities, getAllCities, getAdminAllCities } from '../api/city'
@@ -10,11 +11,12 @@ export const useCitiesStore = defineStore('cities', () => {
     (localStorage.getItem('cityFilter') as 'mine' | 'all') || 'all'
   )
 
-  // watch filterMode and persist to localStorage
+  // 筛选模式持久化到 localStorage
   watch(filterMode, (val) => {
     localStorage.setItem('cityFilter', val)
   })
 
+  /** 根据筛选模式返回对应列表 */
   const activeList = computed<any[]>(() =>
     filterMode.value === 'all' ? allList.value : myList.value
   )
@@ -40,6 +42,7 @@ export const useCitiesStore = defineStore('cities', () => {
     } catch { /* ignore */ }
   }
 
+  /** 同时加载我的关注和全部城市 */
   async function load() {
     await Promise.all([loadMy(), loadAll()])
   }

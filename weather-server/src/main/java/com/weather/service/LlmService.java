@@ -16,6 +16,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 
+/**
+ * LLM 调用服务：对接 DeepSeek API，支持流式（SSE）和非流式两种模式
+ */
 @Service
 public class LlmService {
 
@@ -49,16 +52,20 @@ public class LlmService {
     }
 
     /**
-     * 流式调用 DeepSeek，将 delta 事件发送到外部 emitter
+     * 流式调用 DeepSeek API
+     *
+     * 在异步线程中发起 SSE 请求，逐字解析 delta 事件并发送到外部 emitter。
+     * 流结束后通过 onDone 回调通知 ChatService 发送 sources 信息。
      *
      * @param systemPrompt 系统提示词
      * @param userMessage  用户问题
-     * @param emitter      外部 SseEmitter（由 ChatService 创建）
-     * @param onDone       LLM 流结束后回调，由 ChatService 发送 done 事件和 sources
+     * @param emitter      由 ChatService 创建的 SseEmitter
+     * @param onDone       LLM 流结束后回调（发送 done 事件 + 引用来源）
      */
     public void chatStream(String systemPrompt, String userMessage, SseEmitter emitter, Runnable onDone) {
         asyncExecutor.execute(() -> {
             try {
+                // 构建 Chat Completion 请求
                 ObjectNode body = objectMapper.createObjectNode();
                 body.put("model", model);
                 body.put("max_tokens", maxTokens);
@@ -76,6 +83,7 @@ public class LlmService {
                 userMsg.put("content", userMessage);
                 messages.add(userMsg);
 
+                // 使用 OkHttp 发起 SSE 请求
                 Request request = new Request.Builder()
                         .url(baseUrl + "/v1/chat/completions")
                         .header("Authorization", "Bearer " + apiKey)
@@ -88,6 +96,7 @@ public class LlmService {
                             @Override
                             public void onEvent(EventSource es, String id, String type, String data) {
                                 try {
+                                    // 结束标记
                                     if (data == null || "[DONE]".equals(data.trim())) {
                                         return;
                                     }
@@ -97,6 +106,7 @@ public class LlmService {
                                         var delta = choices.get(0).get("delta");
                                         if (delta != null) {
                                             var content = delta.get("content");
+                                            // 将增量文本通过 SSE 推送到前端
                                             if (content != null && !content.isNull()) {
                                                 emitter.send(SseEmitter.event()
                                                         .name("delta")
@@ -111,7 +121,7 @@ public class LlmService {
 
                             @Override
                             public void onClosed(EventSource es) {
-                                // LLM 流正常结束，调用 onDone 回调（由 ChatService 发送 done 事件 + sources）
+                                // 流正常结束，触发 ChatService 的回调发送 done 事件
                                 if (onDone != null) {
                                     onDone.run();
                                 }
@@ -126,12 +136,13 @@ public class LlmService {
                                             .data("抱歉，处理您的请求时出现错误，请稍后重试。"));
                                     emitter.send(SseEmitter.event().name("done").data("[]"));
                                 } catch (IOException e) {
-                                    // emitter 已无法发送，忽略
+                                    // emitter 已断开，无需处理
                                 }
                                 emitter.completeWithError(t != null ? t : new RuntimeException("LLM 连接失败"));
                             }
                         });
 
+                // SseEmitter 超时或完成后自动取消 SSE 连接
                 emitter.onCompletion(eventSource::cancel);
                 emitter.onTimeout(eventSource::cancel);
 
@@ -143,13 +154,22 @@ public class LlmService {
                             .data("抱歉，处理您的请求时出现错误，请稍后重试。"));
                     emitter.send(SseEmitter.event().name("done").data("[]"));
                 } catch (IOException ex) {
-                    // emitter 已无法发送，忽略
+                    // emitter 已断开
                 }
                 emitter.completeWithError(e);
             }
         });
     }
 
+    /**
+     * 非流式调用 DeepSeek API
+     *
+     * 同步等待完整响应后返回文本内容。
+     *
+     * @param systemPrompt 系统提示词
+     * @param userMessage  用户问题
+     * @return LLM 返回的完整回答文本
+     */
     public String chat(String systemPrompt, String userMessage) {
         try {
             ObjectNode body = objectMapper.createObjectNode();

@@ -18,6 +18,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
+/**
+ * 和风天气 API 客户端：城市搜索、实时天气、7 天预报
+ *
+ * 支持 GZIP 解压，城市代码自动缓存到本地表，减少 API 调用。
+ */
 @Component
 public class QWeatherApiClient {
 
@@ -27,6 +32,7 @@ public class QWeatherApiClient {
     private final String apiKey;
     private final String baseUrl;
 
+    /** 城市代码内存缓存，避免重复查询 */
     private final Map<String, String> cityCache = new HashMap<>();
 
     public QWeatherApiClient(RestTemplate restTemplate,
@@ -47,11 +53,18 @@ public class QWeatherApiClient {
         return headers;
     }
 
+    /**
+     * 调用和风 API，自动处理 GZIP 压缩响应
+     *
+     * 和风天气的响应默认使用 GZIP 压缩，通过检查前两个字节的魔数（0x1F 0x8B）
+     * 判断是否需要解压。
+     */
     private JsonNode callApi(URI uri) {
         HttpEntity<?> entity = new HttpEntity<>(buildHeaders());
         ResponseEntity<byte[]> resp = restTemplate.exchange(uri, HttpMethod.GET, entity, byte[].class);
         try {
             byte[] body = resp.getBody();
+            // 检测 GZIP 魔数
             if (body != null && body.length >= 2 && body[0] == (byte) 0x1F && body[1] == (byte) 0x8B) {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 GZIPInputStream gzis = new GZIPInputStream(new ByteArrayInputStream(body));
@@ -69,11 +82,21 @@ public class QWeatherApiClient {
         }
     }
 
+    /**
+     * 搜索城市并获取城市代码
+     *
+     * 查询顺序：内存缓存 → 本地 city_list 表 → 和风 geo API
+     * 从 API 查询到的结果会自动写入本地表和内存缓存。
+     *
+     * @param cityName 城市中文名
+     * @return 和风天气城市代码
+     */
     public String searchCity(String cityName) {
+        // 1. 内存缓存
         if (cityCache.containsKey(cityName)) {
             return cityCache.get(cityName);
         }
-        // 先查本地表
+        // 2. 本地数据库
         LambdaQueryWrapper<CityList> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CityList::getCityName, cityName);
         CityList city = cityListMapper.selectOne(wrapper);
@@ -81,7 +104,7 @@ public class QWeatherApiClient {
             cityCache.put(cityName, city.getCityCode());
             return city.getCityCode();
         }
-        // 本地没有，调 geo API
+        // 3. 远程 API
         URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/geo/v2/city/lookup")
                 .queryParam("location", cityName)
                 .build()
@@ -100,7 +123,7 @@ public class QWeatherApiClient {
         String province = location.get(0).path("adm1").asText("");
         cityCache.put(cityName, cityId);
 
-        // 写入本地表，下次直接查表
+        // 写入本地表
         CityList newCity = new CityList();
         newCity.setCityName(cityName);
         newCity.setCityCode(cityId);
@@ -113,6 +136,7 @@ public class QWeatherApiClient {
         return cityId;
     }
 
+    /** 获取指定城市的实时天气 */
     public JsonNode getWeatherNow(String cityId) {
         URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/now")
                 .queryParam("location", cityId)
@@ -127,6 +151,7 @@ public class QWeatherApiClient {
         return root.path("now");
     }
 
+    /** 获取指定城市 7 天预报 */
     public JsonNode getWeather7d(String cityId) {
         URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/v7/weather/7d")
                 .queryParam("location", cityId)

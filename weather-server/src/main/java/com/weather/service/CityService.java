@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 城市管理服务：关注/取消城市、城市列表
+ */
 @Service
 public class CityService {
 
@@ -33,12 +36,19 @@ public class CityService {
         this.adminUtils = adminUtils;
     }
 
+    /**
+     * 用户关注城市
+     *
+     * 先去和风 API 搜索城市编码，再写入关注记录。
+     * 重复关注会返回错误。
+     */
     public Map<String, Object> addCity(Long userId, String city) {
         String trimmed = city.trim();
         if (trimmed.isEmpty() || trimmed.length() > 50) {
             throw new IllegalArgumentException("城市名长度不合法");
         }
 
+        // 检查是否已关注过该城市
         LambdaQueryWrapper<FollowedCity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FollowedCity::getUserId, userId)
                .eq(FollowedCity::getCity, trimmed);
@@ -46,6 +56,7 @@ public class CityService {
             throw new IllegalArgumentException("该城市已关注");
         }
 
+        // 去和风天气 API 查询城市代码（同时也会写入本地 city_list 表）
         String cityCode = qWeatherApiClient.searchCity(trimmed);
 
         FollowedCity entity = new FollowedCity();
@@ -61,6 +72,7 @@ public class CityService {
         return result;
     }
 
+    /** 获取当前用户关注的城市列表，按关注时间倒序 */
     public List<FollowedCity> listCities(Long userId) {
         LambdaQueryWrapper<FollowedCity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(FollowedCity::getUserId, userId)
@@ -68,6 +80,11 @@ public class CityService {
         return followedCityMapper.selectList(wrapper);
     }
 
+    /**
+     * 管理员删除用户的关注城市
+     *
+     * 先校验操作者是否为管理员，再检查关注记录是否存在。
+     */
     public void removeCity(Long userId, Integer cityId) {
         adminUtils.checkAdmin(userId);
         LambdaQueryWrapper<FollowedCity> wrapper = new LambdaQueryWrapper<>();
@@ -79,6 +96,7 @@ public class CityService {
         followedCityMapper.deleteById(cityId);
     }
 
+    /** 获取所有被关注的城市名（去重，按字母排序） */
     public List<String> listAllCities() {
         QueryWrapper<FollowedCity> wrapper = new QueryWrapper<>();
         wrapper.select("DISTINCT city").orderByAsc("city");
@@ -87,11 +105,17 @@ public class CityService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 管理员获取全部关注记录
+     *
+     * 从 followed_city 表查出所有记录，再按 userId 批量查询用户昵称进行填充。
+     */
     public List<Map<String, Object>> listAllFollowedCities(Long adminUserId) {
         adminUtils.checkAdmin(adminUserId);
 
         List<FollowedCity> all = followedCityMapper.selectList(null);
 
+        // 收集所有涉及的用户 ID，批量查询昵称（避免 N+1）
         List<Integer> userIds = all.stream()
                 .map(FollowedCity::getUserId)
                 .distinct()
